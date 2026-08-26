@@ -1,0 +1,31 @@
+# Locked non-ROS Python runtime for Ubuntu 22.04 / Python 3.10.
+#
+# Install this with /usr/bin/python3 --user because ROS 2 ament_python entry
+# points use /usr/bin/python3. The ACADOS virtual environment is kept at the
+# locked path, while scripts/env.sh exposes these user-site pins to it.
+# ROS 2, gz Python bindings, and acados_template are intentionally excluded:
+# they come from apt, the Gazebo repository, and the locked ACADOS source tree.
+
+numpy==2.2.6
+scipy==1.15.2
+casadi==3.7.2
+pandas==2.2.3
+matplotlib==3.10.7
+PyYAML==5.4.1
+tqdm==4.67.1
+Cython==3.2.9
+Deprecated==1.2.13
+
+# Transitive runtime pins.
+wrapt==1.13.3
+contourpy==1.3.2
+cycler==0.12.1
+fonttools==4.60.1
+kiwisolver==1.4.9
+packaging==26.3
+pillow==11.3.0
+pyparsing==3.2.5
+python-dateutil==2.9.0.post0
+six==1.17.0
+pytz==2022.1
+tzdata==2024.1

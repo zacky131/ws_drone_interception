@@ -1,0 +1,73 @@
+schema_version: 1
+generated_on: "2026-08-25"
+purpose: Minimal Intel NUC replication of the RAS hardware-mirror ROS 2 workflow
+
+platform:
+  architecture: x86_64
+  os: Ubuntu 22.04 LTS
+  python: "3.10"
+  ros_distro: humble
+  required_user: zacky
+  workspace: /home/zacky/ws_drone_interception
+
+workspace_sources:
+  src/px4_msgs:
+    tree_sha256: 0f016bdd6fa96408301b7b7d847c37cd0a0535f6357ea6bdaa7f5da1d8a7aa17
+    git_url: https://github.com/PX4/px4_msgs.git
+    branch: release/1.15
+    commit: a1045ec4feb6d709bdecaf3895f1d5b43a5dabb8
+  src/drone_interception_px4:
+    tree_sha256: 7a6b7c64f715c65d79e91ec76aad4980519de7b4754f295a5e89591cf65bee20
+  src/ras_hardware_mirror:
+    tree_sha256: 68cbc4b55ab24129ba6c258241cbd0351c390f1677dc0da84c99c276819712c2
+  vendor/drone-interception-comparison-v3:
+    tree_sha256: 4581c53e1979ec4a26c41671928992e988968695dea801f4d5569778aae11243
+
+frozen_files:
+  src/ras_hardware_mirror/manifests/hardware_mirror_24.csv: e32cc93e8a9a900dd9aeb5c7634894a823d72eb429a3bf48100b0ce5728543bb
+  vendor/drone-interception-comparison-v3/configs/q2_revision_pilot.yaml: 3d006820e6adefffb74b8d00d0cad7fe7710826c392855934bf4f4f6f51691d6
+  configs/dapcs_mpc_v1/imm.yaml: 6b1f782ce453cb59ca417c1e261e064415fc50958d001d213dbfcf016d573888
+  requirements.txt: 5feadbaab875924f9aa0e0589b8dd8fc178aab22584616a9fb95b573dd82fb0d
+  requirements-dev.txt: 4fe732fa85c6ffa8732468b0a2c9dbe5d7ed70110597f6cfc594a3df443e68c9
+  requirements-px4.txt: 6281080d9d780fb9c65869c9f68bd850ef9177d9f66dc22f5abd1fcd05863573
+  scripts/env.sh: 0f774c5fa85b0b59e5ab6cdeee73573e1da83c29f1a464a1de4eec579a5bab3a
+  deployment/apt-packages.lock.txt: b3843242e5302887063f7a4c9959b4ede905f9b0d38a8e8de482a1e2f57cda48
+  CODEX_PROMPT_REPLICATE_INTEL_NUC.md: d30fb83a780340d5c612377cfa1d40f375325f6dbafe69926af3907ddd520034
+  NUC_TRANSFER_README.md: 6b8313903e4c32d2e1c85067851f66fa9dc07a14c66ce02de908ea9f21874918
+
+external_sources:
+  acados:
+    path: /home/zacky/acados
+    venv: /home/zacky/acados_env
+    url: https://github.com/acados/acados.git
+    tag: v0.6.0
+    commit: 503364817c872d474ab5bed219c26760ac267769
+    cmake_build_type: Release
+    ACADOS_WITH_QPOASES: true
+    ACADOS_WITH_OPENMP: false
+    BLASFEO_TARGET: X64_AUTOMATIC
+    HPIPM_TARGET: GENERIC
+  micro_xrce_dds_agent:
+    path: /home/zacky/Micro-XRCE-DDS-Agent
+    url: https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
+    tag: v2.4.3
+    commit: 73622810d984349b80bbac0ef55fc0b694d62222
+  px4_sitl:
+    path: /home/zacky/PX4-version1.15.2/PX4-Autopilot
+    url: https://github.com/PX4/PX4-Autopilot.git
+    tag: v1.15.2
+    commit: 4817c0618a1286846116e90c6eb8919efaa013cf
+    gz_submodule_commit: d754381a1cecdd7f17050acd72bf5bf1327bced6
+    local_reference_edits_required: false
+
+excluded_from_transfer:
+  - results
+  - data
+  - build
+  - install
+  - log
+  - papers and manuscripts
+  - notebooks
+  - generated ACADOS solvers
+  - Python caches
+  - compiled libraries and executables

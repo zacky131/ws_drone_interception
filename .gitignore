@@ -1,0 +1,37 @@
+# ROS 2 build, install, and log artifacts
+build/
+install/
+log/
+
+# Simulation experiment data, rosbag, and outputs
+results/
+*.bag
+*.db3
+*.mcap
+
+# Python cache and testing artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ACADOS compiled solver / C code generation
+acados_ocp_solver_*/
+c_generated_code/
+*.o
+*.dylib
+
+# Runtime and temporary files
+*.pid
+*.log
+scratch/
+
+# IDE / Editor configuration
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store

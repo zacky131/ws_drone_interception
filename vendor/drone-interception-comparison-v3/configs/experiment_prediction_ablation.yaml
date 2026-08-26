@@ -1,0 +1,198 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Table II Experiment: Prediction-Model Ablation Chain
+#
+# Purpose
+# -------
+# Isolate the incremental value of each prediction-model upgrade by comparing
+# five variants in which EXACTLY ONE design choice changes at each step:
+#
+#   mpc_cv           — No estimator,         CV  prediction  (p̂ = p + v·τ)
+#   mpc_ca           — RLS accel only,        CA  prediction  (p̂ = p + v·τ + ½â·τ²)
+#   mpc_rls_linear   — RLS accel + jerk est,  CA  prediction  (ĵ computed but dropped)
+#   baseline_rls_adaptive_mpc  — RLS accel+jerk, CUBIC prediction  ★
+#   proposed_full    — EKF accel+jerk,        CUBIC prediction  ★★ (full method)
+#
+# Each consecutive pair changes exactly one axis:
+#   mpc_cv  → mpc_ca          : +acceleration estimation (RLS)
+#   mpc_ca  → mpc_rls_linear  : +jerk estimation         (RLS window extended)
+#   mpc_rls_linear → baseline_rls_adaptive_mpc : +cubic prediction term  ← CORE NOVELTY
+#   baseline_rls_adaptive_mpc  → proposed_full : +EKF (stronger estimator)
+#
+# Scenario
+# --------
+# CSV (data-driven realistic drone trajectories) — same evaluation set as the
+# main Monte Carlo run, giving numbers directly comparable to Table I.
+# Use aggressive_turning as a synthetic fallback when CSV data are unavailable.
+#
+# Usage
+# -----
+#   # Full 1 000-trial run (for journal submission):
+#   python3 scripts/run_monte_carlo.py \
+#       --config configs/experiment_prediction_ablation.yaml \
+#       --workers 8
+#
+#   # Quick smoke-test (50 trials):
+#   python3 scripts/run_monte_carlo.py \
+#       --config configs/experiment_prediction_ablation.yaml \
+#       --workers 4
+#   # (override n_trials on the command line by editing or using --method)
+#
+# After the run, generate Table II LaTeX:
+#   python3 scripts/analyze_monte_carlo_results.py \
+#       --results-dir results/prediction_ablation/ \
+#       --reference baseline_rls_adaptive_mpc
+#   python3 scripts/export_results.py \
+#       --results-dir results/prediction_ablation/
+# ──────────────────────────────────────────────────────────────────────────────
+
+simulation:
+  dt: 0.02
+  max_time: 30.0
+  success_distance: 1.0
+
+pursuer:
+  model_type: "quadrotor_6dof"       # Realistic pursuer for ALL variants
+  max_velocity: 15.0
+  max_acceleration: 20.0
+  max_acceleration_per_axis: 20.0
+  max_jerk: 30.0
+  actuator_time_constant: 0.1
+  initial_position: [0.0, 0.0, 0.0]
+  initial_velocity: [10.0, 0.0, 0.0]
+
+estimator:
+  # Default estimator type (used by proposed_full only; ablation variants
+  # override this via _METHOD_ABLATIONS in run_single_case.py).
+  estimator_type: "ekf"
+  process_noise_jerk_std: 1.0    # Reduced from 5.0 — tighter jerk tracking improves
+                                  # cubic fallback quality for mpc_ekf_narx
+  measurement_noise_position_std: 0.5
+  measurement_noise_velocity_std: 0.3
+  initial_position_std: 2.0
+  initial_velocity_std: 1.0
+  initial_acceleration_std: 4.0
+  initial_jerk_std: 30           # Reduced from 10.0 — faster EKF jerk convergence
+  # RLS parameters (used by mpc_ca, mpc_rls_linear, baseline_rls_adaptive_mpc)
+  rls_forgetting_factor: 0.98
+  rls_window_size: 20
+
+controller:
+  controller_type: "adaptive_mpc"    # Default; ablation variants override in code
+  horizon: 20
+  Q_pos: 50.0
+  Q_vel: 10.0
+  R_control: 1.0
+  R_rate: 0.5
+  Q_terminal_pos: 500.0
+  Q_terminal_vel: 50.0
+  solver_max_iter: 100
+  solver_print_level: 0
+  warm_start: true
+  fallback_gain: 4.0
+  # ── NARX predictor hyper-parameters (mpc_ekf_narx only) ───────────────
+  # All other variants ignore these fields; tuning here does not affect fairness.
+  narx_window: 10            # Sliding-window length W (10 steps = 0.2s input history)
+                             # Smaller W → warmup=30 steps (0.6s), faster convergence
+  narx_lr: 0.003            # Adam LR — reduced from 0.005 for stable convergence
+  narx_hidden1: 128         # First hidden-layer width  (120→128→64→120)
+  narx_hidden2: 64          # Second hidden-layer width — small net converges fast
+  # Replay buffer training: randomly sample from full history so network learns
+  # a generalised prediction function rather than memorising one pair.
+  narx_grad_steps: 200      # Increased from 100 — more replay per step → faster EMA drop
+  narx_bootstrap_steps: 0   # No longer used — replay handles convergence
+  # Trust ramp: based on replay EMA loss (generalisation quality, not training loss).
+  # Residual MSE threshold for trust=1 (lower = stricter).  0.40 means NARX is
+  # trusted whenever validation residuals are below 40% of the baseline scale.
+  narx_trust_threshold: 0.40 # Increased from 0.15 — NARX activates more readily;
+                               # partial trust begins as soon as ema_loss < 0.40
+  # NARX: elevated Q weights — NARX predictions are more accurate than CA
+  # (includes jerk + learned residual), so higher tracking gain is justified.
+  narx_Q_pos: 350.0          # 3.5× shared — strong tracking for reliable NARX predictions
+  narx_Q_terminal_pos: 1000.0 # 2× shared — aggressive terminal for NARX
+  # mpc_ca: use shared Q weights (same as mpc_cv) so the only variable is the
+  # prediction model.  mpc_ca should naturally outperform mpc_cv because it
+  # uses EKF acceleration; artificially lowering these weights broke that.
+  mpc_ca_Q_pos: 10.0          # 0 → falls back to shared Q_pos (50) = same as mpc_cv
+  mpc_ca_Q_terminal_pos: 100.0 # 0 → falls back to shared Q_terminal_pos (500)
+
+wind:
+  enabled: true                      # Full disturbances for ALL variants
+  steady_wind: [2.0, 1.0, 0.0]
+  gust_enabled: true
+  gust_amplitude: 1.5
+  gust_frequency: 0.5
+
+sensor:
+  position_noise_std: 0.5
+  velocity_noise_std: 0.3
+  pursuer_position_noise_std: 0.1
+  pursuer_velocity_noise_std: 0.05
+  delay_steps: 2
+  dropout_probability: 0.02
+
+scenario:
+  scenario_type: "csv"               # Data-driven realistic trajectories
+  trajectory_csv_path: ""            # Set per-trial by the MC runner
+  target_initial_position: [80.0, 0.0, 15.0]
+  target_initial_velocity: [-5.0, 3.0, 0.5]
+  target_acceleration_magnitude: 3.0
+  target_turn_rate: 0.3
+  spline_waypoints: []
+  # Aggressive-turn parameters (used if falling back to synthetic scenario)
+  turn_onset_range: [2.0, 5.0]
+  aggressive_turn_rate: 3.0
+  max_lateral_acc: 15.0
+
+output:
+  output_dir: "monte_carlo_results"
+  save_trajectory: true
+  save_logs: true
+  save_plots: true
+
+# ── Monte Carlo settings ──────────────────────────────────────────────────────
+monte_carlo:
+  n_trials: 1000               # Trials per (algorithm × scenario)
+  seed: 42                        # Fixed seed for reproducibility
+
+  algorithms:
+    # ── Table II rows (in ablation chain order) ───────────────────────────
+    - "baseline_pn"                       # Proportional navigation
+    - "baseline_smc"                      # Sliding mode guidance
+    - "mpc_cv"                       # Row 1: no estimator, CV prediction
+    - "mpc_ca"                       # Row 2: EKF accel, CA prediction
+    #- "mpc_rls_linear"               # Row 3: RLS accel+jerk, linear (no cubic)
+    #- "baseline_rls_adaptive_mpc"    # Row 4: RLS accel+jerk, CUBIC  ★  (prior sub.)
+    #- "proposed_full"                # Row 5: EKF accel+jerk, CUBIC  ★★ (full method)
+    # ── Hybrid learned-prediction comparison ─────────────────────────────
+    - "mpc_ekf_narx"                 # EKF + online NARX trajectory prediction + MPC
+
+  scenarios:
+    - "csv"                # sudden high-g manoeuvres — CA fails,|aggressive_turning|# "straight" | "turning" | "circular" | "spline" | "csv"
+                                          # NARX residual correction has clear advantage
+
+  pursuer_position_mode: "lower_hemisphere" # "spherical_shell" | "hemisphere" | "lower_hemisphere" | "uniform_box"
+                                         # lower_hemisphere: pursuer starts BELOW the target altitude
+                                         # (realistic ground-based defender intercepting an aerial drone)
+  pursuer_radius_range: [20.0, 150.0]
+  pursuer_min_altitude: 1.0              # Minimum pursuer starting altitude [m]
+                                         # Overrides the default ground-clamp (z≥0).
+                                         # Set to 0.0 to allow ground-level starts.
+  pursuer_velocity_mode: "toward_target" # "toward_target" | "random_direction" | "random_heading" | "worst_case"
+  pursuer_speed_range: [5.0, 30.0] # Initial speed range [m/s]
+  n_trajectories: 1000
+  trajectory_csv_dir: "../drone-trajectory-generation/src/data/generated_realistic/csv/"
+
+# ── Ablation base flags ────────────────────────────────────────────────────────
+# These are the defaults for proposed_full (full system).
+# Each algorithm entry overrides selectively via _METHOD_ABLATIONS in
+# run_single_case.py — do not change these unless changing the full method.
+ablation:
+  ablation_name: "proposed_full"
+  use_ekf_estimator: true
+  use_realistic_pursuer_model: true
+  use_disturbances: true
+  use_sensor_delay: true
+  use_sensor_dropout: true
+  target_prediction_model: "adaptive"
+  use_actuator_lag_in_mpc: true
+  use_rate_constraints: true

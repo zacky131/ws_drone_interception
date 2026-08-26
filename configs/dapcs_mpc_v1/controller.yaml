@@ -1,0 +1,32 @@
+control_rate_hz: 50.0
+capture_radius_m: 1.0
+physical_constraints:
+  max_velocity_mps: 15.0
+  max_acceleration_mps2: 20.0
+  max_acceleration_per_axis_mps2: 20.0
+  max_jerk_mps3: 30.0
+  actuator_time_constant_s: 0.05
+nonuniform_horizon:
+  segments:
+    - {start_s: 0.00, end_s: 0.40, dt_s: 0.02}
+    - {start_s: 0.40, end_s: 1.20, dt_s: 0.05}
+    - {start_s: 1.20, end_s: 3.00, dt_s: 0.10}
+candidate_capture_times_s: [0.6, 0.8, 1.0, 1.2, 1.5, 2.0, 2.5, 3.0]
+probabilistic_selector:
+  epsilon: 0.10
+  required_coverage: 0.90
+  beta_margin: 0.20
+  beta_time: 0.05
+mpc_weights:
+  weak_position: 1.0
+  weak_velocity: 0.5
+  capture_position: 1000.0
+  capture_velocity: 50.0
+  control: 1.0
+  command_rate: 0.5
+  terminal_weak_position: 0.1
+solver:
+  nlp_solver_type: SQP_RTI
+  qp_solver: PARTIAL_CONDENSING_HPIPM
+  max_iterations: 100
+  print_level: 0

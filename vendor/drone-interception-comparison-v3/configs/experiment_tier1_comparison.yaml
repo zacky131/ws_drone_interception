@@ -1,0 +1,139 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Tier-1 Experiment: Fair Baseline Comparison
+#
+# Purpose
+# -------
+# Compare the proposed adaptive MPC against two fair baselines that also use the
+# EKF estimator and the realistic quadrotor outer-loop pursuer model:
+#
+#   proposed_full         — EKF + adaptive MPC (accel+jerk prediction)
+#   baseline_standard_mpc — EKF + MPC with constant-velocity target assumption
+#   constant_velocity_mpc — EKF + MPC with constant-velocity prediction
+#                           (isolates the value of the adaptive jerk-aware model)
+#
+# All three methods receive identical estimator outputs, pursuer dynamics,
+# sensor disturbances and wind.  The only axis of comparison is the target
+# prediction model inside the MPC.
+#
+# Scenarios
+# ---------
+# Three scenarios of increasing difficulty:
+#   straight          — constant-velocity target (easiest)
+#   turning           — constant-rate banked turn
+#   aggressive_turning — high-g banked turn (hardest; tests prediction model)
+#
+# Usage
+# -----
+#   python3 scripts/run_monte_carlo.py \
+#       --config configs/experiment_tier1_comparison.yaml
+# ──────────────────────────────────────────────────────────────────────────────
+
+simulation:
+  dt: 0.02
+  max_time: 30.0
+  success_distance: 0.5
+
+pursuer:
+  model_type: "quadrotor_6dof"
+  max_velocity: 30.0
+  max_acceleration: 15.0
+  max_acceleration_per_axis: 15.0
+  max_jerk: 50.0
+  actuator_time_constant: 0.1
+  initial_position: [0.0, 0.0, 0.0]
+  initial_velocity: [10.0, 0.0, 0.0]
+
+estimator:
+  estimator_type: "ekf"        # EKF used by ALL three methods (fair comparison)
+  process_noise_jerk_std: 5.0
+  measurement_noise_position_std: 0.5
+  measurement_noise_velocity_std: 0.3
+  initial_position_std: 2.0
+  initial_velocity_std: 1.0
+  initial_acceleration_std: 5.0
+  initial_jerk_std: 10.0
+  rls_forgetting_factor: 0.98
+  rls_window_size: 20
+
+controller:
+  controller_type: "adaptive_mpc"
+  horizon: 20
+  Q_pos: 100.0
+  Q_vel: 10.0
+  R_control: 1.0
+  R_rate: 0.5
+  Q_terminal_pos: 500.0
+  Q_terminal_vel: 50.0
+  solver_max_iter: 100
+  solver_print_level: 0
+  warm_start: true
+  fallback_gain: 4.0
+
+wind:
+  enabled: true
+  steady_wind: [2.0, 1.0, 0.0]
+  gust_enabled: true
+  gust_amplitude: 1.5
+  gust_frequency: 0.5
+
+sensor:
+  position_noise_std: 0.5
+  velocity_noise_std: 0.3
+  pursuer_position_noise_std: 0.1
+  pursuer_velocity_noise_std: 0.05
+  delay_steps: 2
+  dropout_probability: 0.02
+
+scenario:
+  scenario_type: "turning"     # overridden per-scenario by the MC runner
+  target_initial_position: [80.0, 0.0, 15.0]
+  target_initial_velocity: [-5.0, 3.0, 0.5]
+  target_acceleration_magnitude: 3.0
+  target_turn_rate: 0.3
+  spline_waypoints: []
+  trajectory_csv_path: ""
+  # Aggressive-turn scenario parameters (used when scenario_type = aggressive_turning)
+  turn_onset_range: [2.0, 5.0]
+  aggressive_turn_rate: 3.0
+  max_lateral_acc: 15.0
+
+output:
+  output_dir: "results/tier1_comparison"
+  save_trajectory: false
+  save_logs: true
+  save_plots: true
+
+# ── Monte Carlo settings ──────────────────────────────────────────────────────
+monte_carlo:
+  n_trials: 100               # Trials per (algorithm × scenario) pair
+  seed: 42
+
+  algorithms:
+    - "proposed_full"          # EKF + adaptive MPC (accel+jerk prediction)
+    - "baseline_standard_mpc"  # EKF + MPC, constant-velocity target assumption
+    - "constant_velocity_mpc"  # EKF + MPC, constant-velocity prediction (new fair baseline)
+
+  scenarios:
+    - "straight"               # Constant-velocity target
+    - "turning"                # Constant-rate banked turn
+    - "aggressive_turning"     # High-g banked turn (tests prediction model most)
+
+  pursuer_position_mode: "spherical_shell"
+  pursuer_radius_range: [50.0, 100.0]   # Initial separation range [m]
+  pursuer_velocity_mode: "random_direction"
+  pursuer_speed_range: [5.0, 20.0]      # Initial speed range [m/s]
+
+# ── Ablation flags ─────────────────────────────────────────────────────────────
+# All three methods use the full configuration (EKF + realistic pursuer +
+# disturbances).  Individual method ablation flags are applied per-algorithm
+# by the MC runner via _METHOD_ABLATIONS.
+ablation:
+  ablation_name: "proposed_full"
+  use_ekf_estimator: true
+  use_realistic_pursuer_model: true
+  use_disturbances: true
+  use_sensor_delay: true
+  use_sensor_dropout: true
+  target_prediction_model: "adaptive"
+  use_actuator_lag_in_mpc: true
+  use_rate_constraints: true

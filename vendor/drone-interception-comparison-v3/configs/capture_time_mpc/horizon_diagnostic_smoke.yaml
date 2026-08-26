@@ -1,0 +1,48 @@
+# Smoke test config for Horizon Diagnostic (1 trajectory per family)
+simulation:
+  dt: 0.02
+  max_time: 15.0
+  success_distance: 1.0
+
+pursuer:
+  model_type: "quadrotor_6dof"
+  mass: 1.5
+  max_velocity: 15.0
+  max_acceleration: 20.0
+  max_acceleration_per_axis: 20.0
+  max_jerk: 30.0
+  actuator_time_constant: 0.05
+
+estimator:
+  estimator_type: "ekf"
+  process_noise_jerk_std: 5.0
+  measurement_noise_position_std: 0.5
+  measurement_noise_velocity_std: 0.3
+
+controller:
+  controller_type: "mpc_narx"
+  solver: "acados"
+  horizon: 20
+  Q_pos: 50.0
+  Q_vel: 10.0
+  R_control: 1.0
+  R_rate: 0.5
+  Q_terminal_pos: 500.0
+  Q_terminal_vel: 50.0
+  solver_max_iter: 100
+  solver_print_level: 0
+
+monte_carlo:
+  n_trials: 8
+  seed: 42
+  scenarios:
+    - "csv"
+  algorithms:
+    - "oracle_fixed_0p4s"
+    - "oracle_nonuniform_3p0s"
+    - "exact_state_ca_fixed_0p4s"
+    - "exact_state_ca_nonuniform_3p0s"
+  trajectory_csv_dir: "data/q2_challenge_v1/generated_6dof/csv"
+  manifest_path: "results/q2_revision_v1/dataset_c/manifests/dataset_c_confirmatory.txt"
+  engagement_seeds: [42]
+  output_dir: "results/capture_time_mpc_v1/smoke"

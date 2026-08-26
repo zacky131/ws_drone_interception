@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sdf version="1.9">
+  <world name="football_field">
+    <physics type="ode"><max_step_size>0.004</max_step_size><real_time_factor>1.0</real_time_factor><real_time_update_rate>250</real_time_update_rate></physics>
+    <plugin name="gz::sim::systems::Physics" filename="gz-sim-physics-system"/>
+    <plugin name="gz::sim::systems::UserCommands" filename="gz-sim-user-commands-system"/>
+    <plugin name="gz::sim::systems::SceneBroadcaster" filename="gz-sim-scene-broadcaster-system"/>
+    <plugin name="gz::sim::systems::Contact" filename="gz-sim-contact-system"/>
+    <plugin name="gz::sim::systems::Imu" filename="gz-sim-imu-system"/>
+    <plugin name="gz::sim::systems::AirPressure" filename="gz-sim-air-pressure-system"/>
+    <plugin name="gz::sim::systems::ApplyLinkWrench" filename="gz-sim-apply-link-wrench-system"/>
+    <plugin name="gz::sim::systems::NavSat" filename="gz-sim-navsat-system"/>
+    <plugin name="gz::sim::systems::Sensors" filename="gz-sim-sensors-system"><render_engine>ogre2</render_engine></plugin>
+    <gravity>0 0 -9.8</gravity>
+    <magnetic_field>6e-06 2.3e-05 -4.2e-05</magnetic_field>
+    <atmosphere type="adiabatic"/>
+    <scene><grid>false</grid><ambient>0.5 0.5 0.5 1</ambient><background>0.72 0.82 0.92 1</background><shadows>true</shadows></scene>
+    <gui fullscreen="false">
+      <plugin filename="MinimalScene" name="3D View"><gz-gui><title>RAS hardware mirror</title><property type="bool" key="showTitleBar">false</property><property type="string" key="state">docked</property></gz-gui><engine>ogre2</engine><scene>scene</scene><ambient_light>0.5 0.5 0.5</ambient_light><background_color>0.72 0.82 0.92</background_color><camera_pose>-55 -48 44 0 0.55 0.7</camera_pose></plugin>
+      <plugin name="World control" filename="WorldControl"><gz-gui><property type="bool" key="showTitleBar">0</property><property type="string" key="state">floating</property></gz-gui><play_pause>1</play_pause><step>1</step><start_paused>0</start_paused></plugin>
+      <plugin name="World stats" filename="WorldStats"/>
+      <plugin name="Entity tree" filename="EntityTree"/>
+    </gui>
+    <model name="grass_field">
+      <static>true</static><link name="link">
+        <collision name="collision"><geometry><box><size>100 60 0.1</size></box></geometry></collision>
+        <visual name="grass"><geometry><box><size>100 60 0.1</size></box></geometry><material><ambient>0.08 0.30 0.08 1</ambient><diffuse>0.10 0.42 0.10 1</diffuse></material></visual>
+      </link><pose>0 0 -0.05 0 0 0</pose>
+    </model>
+    <model name="field_boundary_south"><static>true</static><pose>0 -30 0.025 0 0 0</pose><link name="link"><visual name="visual"><geometry><box><size>100 0.12 0.03</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse></material></visual></link></model>
+    <model name="field_boundary_north"><static>true</static><pose>0 30 0.025 0 0 0</pose><link name="link"><visual name="visual"><geometry><box><size>100 0.12 0.03</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse></material></visual></link></model>
+    <model name="field_boundary_west"><static>true</static><pose>-50 0 0.025 0 0 0</pose><link name="link"><visual name="visual"><geometry><box><size>0.12 60 0.03</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse></material></visual></link></model>
+    <model name="field_boundary_east"><static>true</static><pose>50 0 0.025 0 0 0</pose><link name="link"><visual name="visual"><geometry><box><size>0.12 60 0.03</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse></material></visual></link></model>
+    <model name="center_line"><static>true</static><pose>0 0 0.025 0 0 0</pose><link name="link"><visual name="visual"><geometry><box><size>0.12 60 0.03</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse></material></visual></link></model>
+    <model name="center_circle_00"><static>true</static><pose>9.15 0 0.026 0 0 0</pose><link name="link"><visual name="visual"><geometry><box><size>0.8 0.12 0.03</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse></material></visual></link></model>
+    <model name="center_circle_01"><static>true</static><pose>7.92413 4.575 0.026 0 0 0</pose><link name="link"><visual name="visual"><geometry><box><size>0.8 0.12 0.03</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse></material></visual></link></model>
+    <model name="center_circle_02"><static>true</static><pose>4.575 7.92413 0.026 0 0 0</pose><link name="link"><visual name="visual"><geometry><box><size>0.8 0.12 0.03</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse></material></visual></link></model>
+    <model name="center_circle_03"><static>true</static><pose>5.60276e-16 9.15 0.026 0 0 0</pose><link name="link"><visual name="visual"><geometry><box><size>0.8 0.12 0.03</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse></material></visual></link></model>
+    <model name="center_circle_04"><static>true</static><pose>-4.575 7.92413 0.026 0 0 0</pose><link name="link"><visual name="visual"><geometry><box><size>0.8 0.12 0.03</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse></material></visual></link></model>
+    <model name="center_circle_05"><static>true</static><pose>-7.92413 4.575 0.026 0 0 0</pose><link name="link"><visual name="visual"><geometry><box><size>0.8 0.12 0.03</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse></material></visual></link></model>
+    <model name="center_circle_06"><static>true</static><pose>-9.15 1.12055e-15 0.026 0 0 0</pose><link name="link"><visual name="visual"><geometry><box><size>0.8 0.12 0.03</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse></material></visual></link></model>
+    <model name="center_circle_07"><static>true</static><pose>-7.92413 -4.575 0.026 0 0 0</pose><link name="link"><visual name="visual"><geometry><box><size>0.8 0.12 0.03</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse></material></visual></link></model>
+    <model name="center_circle_08"><static>true</static><pose>-4.575 -7.92413 0.026 0 0 0</pose><link name="link"><visual name="visual"><geometry><box><size>0.8 0.12 0.03</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse></material></visual></link></model>
+    <model name="center_circle_09"><static>true</static><pose>-1.68083e-15 -9.15 0.026 0 0 0</pose><link name="link"><visual name="visual"><geometry><box><size>0.8 0.12 0.03</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse></material></visual></link></model>
+    <model name="center_circle_10"><static>true</static><pose>4.575 -7.92413 0.026 0 0 0</pose><link name="link"><visual name="visual"><geometry><box><size>0.8 0.12 0.03</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse></material></visual></link></model>
+    <model name="center_circle_11"><static>true</static><pose>7.92413 -4.575 0.026 0 0 0</pose><link name="link"><visual name="visual"><geometry><box><size>0.8 0.12 0.03</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse></material></visual></link></model>
+    <model name="hard_geofence_south"><static>true</static><pose>0 -22 0.09 0 0 0</pose><link name="link"><visual name="visual"><geometry><box><size>80 0.16 0.03</size></box></geometry><material><ambient>0.9 0.05 0.05 1</ambient><diffuse>0.9 0.05 0.05 1</diffuse></material></visual></link></model>
+    <model name="hard_geofence_north"><static>true</static><pose>0 22 0.09 0 0 0</pose><link name="link"><visual name="visual"><geometry><box><size>80 0.16 0.03</size></box></geometry><material><ambient>0.9 0.05 0.05 1</ambient><diffuse>0.9 0.05 0.05 1</diffuse></material></visual></link></model>
+    <model name="hard_geofence_west"><static>true</static><pose>-40 0 0.09 0 0 0</pose><link name="link"><visual name="visual"><geometry><box><size>0.16 44 0.03</size></box></geometry><material><ambient>0.9 0.05 0.05 1</ambient><diffuse>0.9 0.05 0.05 1</diffuse></material></visual></link></model>
+    <model name="hard_geofence_east"><static>true</static><pose>40 0 0.09 0 0 0</pose><link name="link"><visual name="visual"><geometry><box><size>0.16 44 0.03</size></box></geometry><material><ambient>0.9 0.05 0.05 1</ambient><diffuse>0.9 0.05 0.05 1</diffuse></material></visual></link></model>
+    <model name="target_region_south"><static>true</static><pose>0 -15 0.07 0 0 0</pose><link name="link"><visual name="visual"><geometry><box><size>60 0.12 0.03</size></box></geometry><material><ambient>1 0.75 0.05 1</ambient><diffuse>1 0.75 0.05 1</diffuse></material></visual></link></model>
+    <model name="target_region_north"><static>true</static><pose>0 15 0.07 0 0 0</pose><link name="link"><visual name="visual"><geometry><box><size>60 0.12 0.03</size></box></geometry><material><ambient>1 0.75 0.05 1</ambient><diffuse>1 0.75 0.05 1</diffuse></material></visual></link></model>
+    <model name="target_region_west"><static>true</static><pose>-30 0 0.07 0 0 0</pose><link name="link"><visual name="visual"><geometry><box><size>0.12 30 0.03</size></box></geometry><material><ambient>1 0.75 0.05 1</ambient><diffuse>1 0.75 0.05 1</diffuse></material></visual></link></model>
+    <model name="target_region_east"><static>true</static><pose>30 0 0.07 0 0 0</pose><link name="link"><visual name="visual"><geometry><box><size>0.12 30 0.03</size></box></geometry><material><ambient>1 0.75 0.05 1</ambient><diffuse>1 0.75 0.05 1</diffuse></material></visual></link></model>
+    <include><uri>model://virtual_target_marker</uri><name>virtual_target_marker</name><pose>-11 0 5 0 0 0</pose></include>
+    <light name="sun" type="directional"><pose>0 0 100 0 0 0</pose><cast_shadows>true</cast_shadows><direction>-0.3 0.2 -0.9</direction><diffuse>0.9 0.9 0.9 1</diffuse><specular>0.2 0.2 0.2 1</specular></light>
+    <spherical_coordinates><surface_model>EARTH_WGS84</surface_model><world_frame_orientation>ENU</world_frame_orientation><latitude_deg>47.3979710577</latitude_deg><longitude_deg>8.5461637398</longitude_deg><elevation>0</elevation></spherical_coordinates>
+  </world>
+</sdf>

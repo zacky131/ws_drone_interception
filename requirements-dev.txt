@@ -1,0 +1,13 @@
+-r requirements.txt
+
+# Versions used by the package's source-level pytest suite on the reference
+# machine. ROS/ament test packages remain apt-managed.
+pytest==6.2.5
+attrs==24.2.0
+iniconfig==1.1.1
+pluggy==0.13.0
+py==1.10.0
+toml==0.10.2
+wcwidth==0.2.13
+more-itertools==8.10.0
+

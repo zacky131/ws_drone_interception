@@ -1,0 +1,9 @@
+history_samples: 1500
+refresh_rate_hz: 8.0
+figure_size_inches: [12.0, 8.0]
+colors:
+  interceptor: "#0072B2"
+  truth: "#111111"
+  estimate: "#D55E00"
+  prediction: "#009E73"
+  capture: "#CC3311"

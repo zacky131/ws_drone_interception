@@ -1,0 +1,157 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Tier-3 Experiment: Robustness Sweep
+#
+# Purpose
+# -------
+# Characterise how the proposed full method's success rate degrades as each
+# disturbance / sensor / scenario parameter is pushed beyond nominal values.
+# One parameter is swept at a time; all others stay at their nominal values.
+#
+# This config is consumed directly by run_robustness_sweep.py, which reads the
+# [sweep] section to determine the grid.  run_monte_carlo.py is NOT used here.
+#
+# Usage
+# -----
+#   python3 scripts/run_robustness_sweep.py \
+#       --config configs/experiment_tier3_robustness.yaml \
+#       --output-dir results/tier3_robustness/ \
+#       --trials 500 \
+#       --method proposed_full \
+#       --workers 4
+#
+# To sweep only a subset of parameters:
+#   python3 scripts/run_robustness_sweep.py \
+#       --config configs/experiment_tier3_robustness.yaml \
+#       --params wind_magnitude sensor_noise_std
+#
+# After the run, generate robustness-curve figures with:
+#   python3 -c "
+#   from scripts.export_results import export_robustness_curves
+#   export_robustness_curves('results/tier3_robustness', 'results/tier3_robustness/robustness_curves')
+#   "
+# ──────────────────────────────────────────────────────────────────────────────
+
+simulation:
+  dt: 0.02
+  max_time: 30.0
+  success_distance: 0.5
+
+pursuer:
+  model_type: "quadrotor_6dof"
+  max_velocity: 30.0
+  max_acceleration: 15.0
+  max_acceleration_per_axis: 15.0
+  max_jerk: 50.0
+  actuator_time_constant: 0.1
+  initial_position: [0.0, 0.0, 0.0]
+  initial_velocity: [10.0, 0.0, 0.0]
+
+estimator:
+  estimator_type: "ekf"
+  process_noise_jerk_std: 5.0
+  measurement_noise_position_std: 0.5  # nominal — overridden during sensor_noise_std sweep
+  measurement_noise_velocity_std: 0.3
+  initial_position_std: 2.0
+  initial_velocity_std: 1.0
+  initial_acceleration_std: 5.0
+  initial_jerk_std: 10.0
+  rls_forgetting_factor: 0.98
+  rls_window_size: 20
+
+controller:
+  controller_type: "adaptive_mpc"
+  horizon: 20
+  Q_pos: 100.0
+  Q_vel: 10.0
+  R_control: 1.0
+  R_rate: 0.5
+  Q_terminal_pos: 500.0
+  Q_terminal_vel: 50.0
+  solver_max_iter: 100
+  solver_print_level: 0
+  warm_start: true
+  fallback_gain: 4.0
+
+# Nominal wind (overridden during wind_magnitude sweep)
+wind:
+  enabled: true
+  steady_wind: [2.0, 1.0, 0.0]   # norm ≈ 2.24 m/s — nominal
+  gust_enabled: true
+  gust_amplitude: 1.5
+  gust_frequency: 0.5
+
+# Nominal sensor (overridden during sensor_noise_std and sensor_delay_steps sweeps)
+sensor:
+  position_noise_std: 0.5         # nominal
+  velocity_noise_std: 0.3         # nominal (scaled with position_noise_std during sweep)
+  pursuer_position_noise_std: 0.1
+  pursuer_velocity_noise_std: 0.05
+  delay_steps: 2                  # nominal — overridden during sensor_delay_steps sweep
+  dropout_probability: 0.02
+
+# Nominal scenario (overridden during target_scenario sweep)
+scenario:
+  scenario_type: "turning"        # nominal — overridden during target_scenario sweep
+  target_initial_position: [80.0, 0.0, 15.0]
+  target_initial_velocity: [-5.0, 3.0, 0.5]
+  target_acceleration_magnitude: 3.0
+  target_turn_rate: 0.3
+  spline_waypoints: []
+  trajectory_csv_path: ""
+  # Aggressive-turn parameters (used when scenario_type = aggressive_turning)
+  turn_onset_range: [2.0, 5.0]
+  aggressive_turn_rate: 3.0
+  max_lateral_acc: 15.0
+  # Sinusoidal-evasion parameters
+  evasion_frequency_range: [0.3, 1.5]
+  evasion_amplitude_range: [2.0, 8.0]
+  # Unpredictable-jerk parameters
+  jerk_dt_change: 1.5
+  jerk_magnitude_limit: 8.0
+
+output:
+  output_dir: "results/tier3_robustness"
+  save_trajectory: false
+  save_logs: false      # disable per-trial logs to save disk space
+  save_plots: false
+
+# ── Monte Carlo IC settings (used by run_robustness_sweep.py for IC sampling) ─
+monte_carlo:
+  n_trials: 500                    # Default; override with --trials
+  seed: 42
+  algorithms:
+    - "proposed_full"
+  scenarios:
+    - "turning"
+  pursuer_position_mode: "spherical_shell"
+  pursuer_radius_range: [50.0, 100.0]
+  pursuer_velocity_mode: "random_direction"
+  pursuer_speed_range: [5.0, 20.0]
+
+# ── Robustness sweep grid ──────────────────────────────────────────────────────
+# This section documents the sweep values used by run_robustness_sweep.py.
+# The script reads DEFAULT_SWEEP_GRID directly; these values are here for
+# reference and reproducibility documentation only.
+#
+# sweep:
+#   wind_magnitude:       [0.0, 2.0, 5.0, 10.0]     # Wind vector norm [m/s]
+#   sensor_noise_std:     [0.0, 0.1, 0.3, 0.5]      # Position noise σ [m]
+#   sensor_delay_steps:   [0, 1, 2, 4]              # Latency [timesteps]
+#   target_scenario:
+#     - "straight"
+#     - "turning"
+#     - "aggressive_turning"
+#     - "sinusoidal_evasion"
+#     - "unpredictable_jerk"
+
+# ── Ablation flags ─────────────────────────────────────────────────────────────
+ablation:
+  ablation_name: "proposed_full"
+  use_ekf_estimator: true
+  use_realistic_pursuer_model: true
+  use_disturbances: true
+  use_sensor_delay: true
+  use_sensor_dropout: true
+  target_prediction_model: "adaptive"
+  use_actuator_lag_in_mpc: true
+  use_rate_constraints: true

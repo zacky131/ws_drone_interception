@@ -1,0 +1,121 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Monte Carlo experiment configuration
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Inherits all parameters from default_config.yaml; overrides listed below.
+
+simulation:
+  dt: 0.02
+  max_time: 30.0
+  success_distance: 0.5
+
+pursuer:
+  model_type: "quadrotor_6dof"
+  max_velocity: 30.0
+  max_acceleration: 15.0
+  max_acceleration_per_axis: 15.0
+  max_jerk: 50.0
+  actuator_time_constant: 0.1
+  initial_position: [0.0, 0.0, 0.0]
+  initial_velocity: [10.0, 0.0, 0.0]
+
+estimator:
+  estimator_type: "ekf"
+  process_noise_jerk_std: 5.0
+  measurement_noise_position_std: 0.5
+  measurement_noise_velocity_std: 0.3
+  initial_position_std: 2.0
+  initial_velocity_std: 1.0
+  initial_acceleration_std: 5.0
+  initial_jerk_std: 10.0
+  rls_forgetting_factor: 0.98
+  rls_window_size: 20
+
+controller:
+  controller_type: "adaptive_mpc"
+  horizon: 20
+  Q_pos: 100.0
+  Q_vel: 10.0
+  R_control: 1.0
+  R_rate: 0.5
+  Q_terminal_pos: 500.0
+  Q_terminal_vel: 50.0
+  solver_max_iter: 100
+  solver_print_level: 0
+  warm_start: true
+  fallback_gain: 4.0
+
+wind:
+  enabled: true
+  steady_wind: [2.0, 1.0, 0.0]
+  gust_enabled: true
+  gust_amplitude: 1.5
+  gust_frequency: 0.5
+
+sensor:
+  position_noise_std: 0.5
+  velocity_noise_std: 0.3
+  pursuer_position_noise_std: 0.1
+  pursuer_velocity_noise_std: 0.05
+  delay_steps: 2
+  dropout_probability: 0.02
+
+scenario:
+  scenario_type: "turning"  # "straight" | "turning" | "circular" | "spline" | "csv"
+  trajectory_csv_path: ""
+  target_initial_position: [80.0, 0.0, 15.0]
+  target_initial_velocity: [-5.0, 3.0, 0.5]
+  target_acceleration_magnitude: 3.0
+  target_turn_rate: 0.3
+  spline_waypoints: []
+ 
+output:
+  output_dir: "monte_carlo_results"
+  save_trajectory: false
+  save_logs: true
+  save_plots: true
+
+# ── Monte Carlo specific ──────────────────────────────────────────────────────
+monte_carlo:
+  n_trials: 1000                           # Trials per algorithm per scenario
+  seed: 42                                # Master random seed
+  algorithms:                             # Algorithms to evaluate
+    - "proposed_full"                     # Full method (EKF + adaptive MPC + disturbances)
+    - "ablation_no_ekf"                   # Replace EKF with RLS estimator
+    - "ablation_ideal_pursuer"            # Point-mass pursuer (no actuator lag)
+    - "ablation_no_disturbance"           # Wind off, noise/delay/dropout zeroed
+    - "ablation_fixed_target_model"       # MPC uses constant-accel target prediction
+    - "baseline_pn"                       # Proportional navigation
+    - "baseline_smc"                      # Sliding mode guidance
+    - "baseline_standard_mpc"            # MPC with constant-velocity target assumption
+    - "baseline_rls_adaptive_mpc"        # Prior submission: RLS-guided adaptive MPC
+    # ── Controlled ablation variants for Table II ──────────────────────────
+    - "mpc_cv"                            # No estimator, constant-velocity prediction
+    - "mpc_ca"                            # RLS accel only (jerk=0), CA prediction
+    - "mpc_rls_linear"                    # Full RLS (accel+jerk), linear prediction (no cubic)
+    # Legacy names (kept for reference, comment in to use)
+    #- "ekf_adaptive_mpc"
+    #- "rls_adaptive_mpc"
+    #- "standard_mpc"
+    #- "pn"
+    #- "smc"
+  scenarios:                              # Scenario types to test
+    #- "straight"
+    #- "turning"
+    #- "circular"
+    #- "spline"
+    - "csv"
+  pursuer_position_mode: "spherical_shell"  # "spherical_shell" | "hemisphere" | "uniform_box"
+  pursuer_radius_range: [50.0, 100.0]      # Initial distance range [m]
+  pursuer_velocity_mode: "toward_target" # "toward_target" | "random_direction" | "random_heading" | "worst_case"
+  pursuer_speed_range: [5.0, 20.0]          # Initial speed range [m/s]
+  n_trajectories: 1000                        # CSV trajectories to use (csv scenario only)
+  trajectory_csv_dir: "../drone-trajectory-generation/src/data/generated_realistic/csv/"                    # Directory with target trajectory CSVs
+
+# ── Ablation-only run configuration ──────────────────────────────────────────
+# Use with --method mpc_cv mpc_ca mpc_rls_linear baseline_rls_adaptive_mpc
+# to reproduce Table II in the paper.
+ablation_study:
+  ablation_scenarios:
+    - "case4_datadriven"
+  ablation_n_trials: 1000

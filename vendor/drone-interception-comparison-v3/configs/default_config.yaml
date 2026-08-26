@@ -1,0 +1,85 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Default configuration for single-run drone interception simulation
+# ──────────────────────────────────────────────────────────────────────────────
+
+simulation:
+  dt: 0.02                    # Integration timestep [s]
+  max_time: 30.0              # Maximum simulation duration [s]
+  success_distance: 0.5       # Interception radius [m]
+
+pursuer:
+  model_type: "quadrotor_6dof"   # "point_mass" | "quadrotor_outer_loop" | "quadrotor_6dof"
+  max_velocity: 15.0                   # Velocity saturation [m/s]
+  max_acceleration: 20.0               # Acceleration magnitude limit [m/s^2]
+  max_acceleration_per_axis: 20.0      # Per-component accel bound [m/s^2]
+  max_jerk: 30.0                       # Acceleration rate limit [m/s^3]
+  actuator_time_constant: 0.1          # First-order lag time constant [s]  (outer-loop model)
+  initial_position: [0.0, 0.0, 10.0]   # [m]
+  initial_velocity: [10.0, 0.0, 0.0]   # [m/s]
+  # ── 6-DOF model parameters (only used when model_type = "quadrotor_6dof") ──
+  mass: 1.5                            # Airframe mass [kg]
+  inertia: [0.02, 0.02, 0.04]          # Principal moments of inertia [Ixx, Iyy, Izz] [kg·m²]
+  attitude_time_constant: 0.05         # Inner attitude-loop time constant [s]
+  max_thrust_to_weight_ratio: 2.5      # Maximum thrust-to-weight ratio T/(m·g)
+  max_angular_rate: 10.0               # Angular rate saturation [rad/s]
+  max_torque_per_axis: 1.0             # Per-axis torque limit [N·m]
+  initial_quaternion: [1.0, 0.0, 0.0, 0.0]  # [qw, qx, qy, qz] — identity = level
+  initial_angular_velocity: [0.0, 0.0, 0.0] # Body-frame initial angular velocity [rad/s]
+
+estimator:
+  estimator_type: "ekf"                # "ekf" | "rls"
+  # EKF parameters
+  process_noise_jerk_std: 5.0          # Jerk process noise σ [m/s^3]
+  measurement_noise_position_std: 0.5  # Position measurement σ [m]
+  measurement_noise_velocity_std: 0.3  # Velocity measurement σ [m/s]
+  initial_position_std: 2.0            # Initial position uncertainty [m]
+  initial_velocity_std: 1.0            # Initial velocity uncertainty [m/s]
+  initial_acceleration_std: 5.0        # Initial acceleration uncertainty [m/s^2]
+  initial_jerk_std: 10.0               # Initial jerk uncertainty [m/s^3]
+  # RLS parameters (used only when estimator_type = "rls")
+  rls_forgetting_factor: 0.98
+  rls_window_size: 20
+
+controller:
+  controller_type: "adaptive_mpc"      # "adaptive_mpc" | "standard_mpc" | "pn" | "smc" | "rls_adaptive_mpc"
+  horizon: 20                          # MPC prediction horizon [steps]
+  Q_pos: 100.0                         # Position tracking weight
+  Q_vel: 10.0                          # Velocity tracking weight
+  R_control: 1.0                       # Control effort weight
+  R_rate: 0.5                          # Control rate penalty weight
+  Q_terminal_pos: 500.0                # Terminal position weight
+  Q_terminal_vel: 50.0                 # Terminal velocity weight
+  solver_max_iter: 100                 # IPOPT max iterations
+  solver_print_level: 0                # IPOPT verbosity (0 = silent)
+  warm_start: true                     # Enable warm-starting
+  fallback_gain: 4.0                   # PN gain for solver-failure fallback
+
+wind:
+  enabled: true
+  steady_wind: [2.0, 1.0, 0.0]        # Constant wind vector [m/s]
+  gust_enabled: true
+  gust_amplitude: 1.5                  # Gust peak amplitude [m/s]
+  gust_frequency: 0.5                  # Gust frequency [Hz]
+
+sensor:
+  position_noise_std: 0.5              # Target position noise σ [m]
+  velocity_noise_std: 0.3              # Target velocity noise σ [m/s]
+  pursuer_position_noise_std: 0.1      # Pursuer position noise σ [m]
+  pursuer_velocity_noise_std: 0.05     # Pursuer velocity noise σ [m/s]
+  delay_steps: 2                       # Measurement latency [timesteps]
+  dropout_probability: 0.02            # Packet dropout probability
+
+scenario:
+  scenario_type: "csv"             # "straight" | "turning" | "circular" | "spline" | "csv"
+  trajectory_csv_path: "../drone-trajectory-generation/src/data/generated_realistic/csv/realistic_trajectory_763_level3_data_driven.csv"              # Path to CSV (for scenario_type = "csv")
+  target_initial_position: [80.0, 0.0, 15.0]
+  target_initial_velocity: [-5.0, 3.0, 0.5]
+  target_acceleration_magnitude: 3.0   # Reference maneuver acceleration [m/s^2]
+  target_turn_rate: 0.3                # Turn rate for turning/circular [rad/s]
+  spline_waypoints: []                 # Waypoints for spline scenario [[x,y,z], ...]
+
+output:
+  output_dir: "results"
+  save_trajectory: true
+  save_logs: true
+  save_plots: true

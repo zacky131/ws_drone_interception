@@ -1,0 +1,92 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Ablation preset: No Rate Constraint
+#
+# Identical to proposed_full (adaptive MPC + EKF) with one change:
+#   the MPC jerk / rate constraint is effectively removed by setting
+#   pursuer.max_jerk to a very large value (1 × 10⁶ m/s³).
+#
+# This isolates the contribution of the rate constraint to interception
+# performance.  All other settings match the Monte Carlo default config.
+# ──────────────────────────────────────────────────────────────────────────────
+
+simulation:
+  dt: 0.02
+  max_time: 30.0
+  success_distance: 0.5
+
+pursuer:
+  model_type: "quadrotor_6dof"
+  max_velocity: 30.0
+  max_acceleration: 15.0
+  max_acceleration_per_axis: 15.0
+  max_jerk: 1000000.0          # effectively no rate constraint
+  actuator_time_constant: 0.1
+  initial_position: [0.0, 0.0, 0.0]
+  initial_velocity: [10.0, 0.0, 0.0]
+
+estimator:
+  estimator_type: "ekf"
+  process_noise_jerk_std: 5.0
+  measurement_noise_position_std: 0.5
+  measurement_noise_velocity_std: 0.3
+  initial_position_std: 2.0
+  initial_velocity_std: 1.0
+  initial_acceleration_std: 5.0
+  initial_jerk_std: 10.0
+  rls_forgetting_factor: 0.98
+  rls_window_size: 20
+
+controller:
+  controller_type: "adaptive_mpc"
+  horizon: 20
+  Q_pos: 100.0
+  Q_vel: 10.0
+  R_control: 1.0
+  R_rate: 0.5                  # rate penalty kept; only hard constraint removed
+  Q_terminal_pos: 500.0
+  Q_terminal_vel: 50.0
+  solver_max_iter: 100
+  solver_print_level: 0
+  warm_start: true
+  fallback_gain: 4.0
+
+wind:
+  enabled: true
+  steady_wind: [2.0, 1.0, 0.0]
+  gust_enabled: true
+  gust_amplitude: 1.5
+  gust_frequency: 0.5
+
+sensor:
+  position_noise_std: 0.5
+  velocity_noise_std: 0.3
+  pursuer_position_noise_std: 0.1
+  pursuer_velocity_noise_std: 0.05
+  delay_steps: 2
+  dropout_probability: 0.02
+
+scenario:
+  scenario_type: "turning"
+  trajectory_csv_path: ""
+  target_initial_position: [80.0, 0.0, 15.0]
+  target_initial_velocity: [-5.0, 3.0, 0.5]
+  target_acceleration_magnitude: 3.0
+  target_turn_rate: 0.3
+  spline_waypoints: []
+
+output:
+  output_dir: "monte_carlo_results"
+  save_trajectory: false
+  save_logs: true
+  save_plots: true
+
+ablation:
+  ablation_name: "ablation_no_rate_constraint"
+  use_ekf_estimator: true
+  use_realistic_pursuer_model: true
+  use_disturbances: true
+  use_sensor_delay: true
+  use_sensor_dropout: true
+  target_prediction_model: "adaptive"
+  use_actuator_lag_in_mpc: true
+  use_rate_constraints: false    # flag used by apply_ablation_overrides

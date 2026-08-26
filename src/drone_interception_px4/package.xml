@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>drone_interception_px4</name>
+  <version>0.1.0</version>
+  <description>PX4 v1.15.2 ROS 2 adapters for the frozen drone interception campaign.</description>
+  <maintainer email="zacky@example.com">zacky</maintainer>
+  <license>MIT</license>
+  <buildtool_depend>ament_python</buildtool_depend>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>px4_msgs</exec_depend>
+  <exec_depend>python3-numpy</exec_depend>
+  <exec_depend>python3-pandas</exec_depend>
+  <test_depend>ament_pytest</test_depend>
+  <export><build_type>ament_python</build_type></export>
+</package>

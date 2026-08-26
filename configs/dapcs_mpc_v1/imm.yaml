@@ -1,0 +1,22 @@
+initial_mode_probabilities: [0.45, 0.40, 0.15]
+mode_transition_matrix:
+  - [0.94, 0.05, 0.01]
+  - [0.04, 0.94, 0.02]
+  - [0.03, 0.07, 0.90]
+process_noise:
+  cv: {position: 0.02, velocity: 0.30, acceleration: 30.0}
+  ca: {position: 0.02, velocity: 0.20, acceleration: 12.0}
+  singer: {position: 0.02, velocity: 0.20, acceleration: 8.0}
+singer_time_constant_s: 0.60
+cv_acceleration_time_constant_s: 0.05
+measurement_noise:
+  position_std_m: 0.15
+  velocity_std_mps: 0.30
+initial_uncertainty:
+  position_std_m: 2.0
+  velocity_std_mps: 1.0
+  acceleration_std_mps2: 5.0
+history_buffer_duration_s: 1.0
+maximum_accepted_delay_s: 0.25
+nominal_dt_s: 0.02
+dropout_propagation_rule: prediction_only

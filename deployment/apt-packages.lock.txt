@@ -1,0 +1,55 @@
+# Reference native package lock from Ubuntu 22.04.5 / ROS 2 Humble.
+# Architecture on the reference host was amd64; install these same package
+# versions natively on the x86_64 Intel NUC. Never copy dpkg files, build
+# products, executables, or shared libraries from the reference computer.
+
+# Build and Python toolchain
+build-essential=12.9ubuntu3
+cmake=3.22.1-1ubuntu1.22.04.2
+git=1:2.34.1-1ubuntu1.17
+curl=7.81.0-1ubuntu1.26
+wget=1.21.2-2ubuntu1.5
+ninja-build=1.10.1-1
+pkg-config=0.29.2-1ubuntu3
+python3-dev=3.10.6-1~22.04.1
+python3-pip=22.0.2+dfsg-1ubuntu0.7
+python3.10-venv=3.10.12-1~22.04.16
+python3-colcon-common-extensions=0.3.0-100
+python3-rosdep=0.25.1-1
+python3-vcstool=0.3.0-1
+python3-pytest=6.2.5-1ubuntu2
+python3-yaml=5.4.1-1ubuntu1
+
+# ROS 2 Humble and messages
+ros-humble-ros-base=0.10.0-1jammy.20250429.225608
+ros-humble-rclpy=3.3.16-1jammy.20250429.184459
+ros-humble-ament-cmake=1.3.11-1jammy.20241125.233032
+ros-humble-ament-cmake-python=1.3.11-1jammy.20241125.230201
+ros-humble-ament-cmake-pytest=1.3.11-1jammy.20241125.232240
+ros-humble-launch=1.0.8-1jammy.20250325.170924
+ros-humble-launch-ros=0.19.9-1jammy.20250429.185431
+ros-humble-geometry-msgs=4.8.0-1jammy.20250325.184331
+ros-humble-nav-msgs=4.8.0-1jammy.20250325.185446
+ros-humble-std-msgs=4.8.0-1jammy.20250325.183237
+ros-humble-diagnostic-msgs=4.8.0-1jammy.20250325.185413
+ros-humble-visualization-msgs=4.8.0-1jammy.20250325.190547
+ros-humble-tf2-ros=0.25.12-1jammy.20250429.204439
+ros-humble-tf2-msgs=0.25.12-1jammy.20250325.185419
+ros-humble-rviz2=11.2.17-1jammy.20250514.171113
+
+# Gazebo Harmonic / ros_gz simulation profile
+gz-harmonic=1.0.0-1~jammy
+python3-gz-transport13=13.5.0-1~jammy
+python3-gz-msgs10=10.3.2-1~jammy
+libgz-transport13-dev=13.5.0-1~jammy
+libgz-msgs10-dev=10.3.2-1~jammy
+libgz-sim8-dev=8.12.0-1~jammy
+ros-humble-ros-gzharmonic-bridge=0.244.12-3jammy
+ros-humble-ros-gzharmonic-interfaces=0.244.12-3jammy
+ros-humble-ros-gzharmonic-sim=0.244.12-3jammy
+
+# ACADOS and Micro XRCE-DDS source-build prerequisites
+libeigen3-dev=3.4.0-2ubuntu2
+libssl-dev=3.0.2-0ubuntu1.26
+libasio-dev=1:1.18.1-1
+libtinyxml2-dev=9.0.0+dfsg-3

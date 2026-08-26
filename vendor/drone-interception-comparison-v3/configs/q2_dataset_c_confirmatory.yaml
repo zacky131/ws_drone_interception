@@ -1,0 +1,104 @@
+# Q2 Revision Dataset C Confirmatory Experiment Configuration (160 Trajectories x 4 Methods)
+simulation:
+  dt: 0.02
+  max_time: 30.0
+  success_distance: 1.0
+
+pursuer:
+  model_type: "quadrotor_6dof"
+  mass: 1.5
+  max_velocity: 15.0
+  max_acceleration: 20.0
+  max_acceleration_per_axis: 20.0
+  max_jerk: 30.0
+  actuator_time_constant: 0.05
+  attitude_time_constant: 0.1
+  max_thrust_to_weight_ratio: 2.5
+  max_angular_rate: 6.0
+  max_torque_per_axis: 1.0
+
+estimator:
+  estimator_type: "ekf"
+  process_noise_jerk_std: 5.0
+  measurement_noise_position_std: 0.5
+  measurement_noise_velocity_std: 0.3
+  initial_position_std: 2.0
+  initial_velocity_std: 1.0
+  initial_acceleration_std: 5.0
+  initial_jerk_std: 10.0
+
+controller:
+  controller_type: "mpc_narx"
+  solver: "acados"
+  horizon: 20
+  Q_pos: 50.0
+  Q_vel: 10.0
+  R_control: 1.0
+  R_rate: 0.5
+  Q_terminal_pos: 500.0
+  Q_terminal_vel: 50.0
+  solver_max_iter: 100
+  solver_print_level: 0
+  warm_start: true
+  fallback_gain: 4.0
+  narx_Q_pos: 0.0
+  narx_Q_terminal_pos: 0.0
+  mpc_ca_Q_pos: 0.0
+  mpc_ca_Q_terminal_pos: 0.0
+  narx_window: 15
+  narx_lr: 0.002
+  narx_hidden1: 256
+  narx_hidden2: 128
+  narx_residual_baseline: "constant_acceleration"
+  narx_trust_mode: "prequential"
+  narx_trust_ema_beta: 0.9
+  narx_min_validation_samples: 20
+  narx_validation_window: 100
+  narx_trust_threshold: 0.40
+  narx_seed: 42
+  narx_training_variants:
+    - label: "narx_ca_gated_5hz"
+      narx_residual_baseline: "constant_acceleration"
+      narx_trust_mode: "prequential"
+      narx_training_period_steps: 10
+      narx_grad_steps: 50
+      narx_enable_online_training: true
+      narx_freeze_after_training_events: 0
+    - label: "narx_ca_ungated_5hz"
+      narx_residual_baseline: "constant_acceleration"
+      narx_trust_mode: "always_on"
+      narx_training_period_steps: 10
+      narx_grad_steps: 50
+      narx_enable_online_training: true
+      narx_freeze_after_training_events: 0
+    - label: "narx_ca_online_warmup_frozen"
+      narx_residual_baseline: "constant_acceleration"
+      narx_trust_mode: "prequential"
+      narx_training_period_steps: 10
+      narx_grad_steps: 50
+      narx_enable_online_training: true
+      narx_freeze_after_training_events: 20
+
+wind:
+  enabled: true
+  steady_wind: [2.0, 1.0, 0.0]
+  gust_enabled: true
+
+sensor:
+  position_noise_std: 0.5
+  velocity_noise_std: 0.3
+  delay_steps: 2
+  dropout_probability: 0.02
+
+monte_carlo:
+  n_trials: 160
+  seed: 42
+  scenarios:
+    - "csv"
+  algorithms:
+    - "mpc_ekf_ca"
+    - "mpc_ekf_narx"
+  trajectory_csv_dir: "data/q2_challenge_v1/generated_6dof/csv"
+  manifest_path: "results/q2_revision_v1/dataset_c/manifests/dataset_c_confirmatory.txt"
+  engagement_seeds: [42]
+  output_dir: "results/q2_revision_v1/dataset_c/confirmatory"

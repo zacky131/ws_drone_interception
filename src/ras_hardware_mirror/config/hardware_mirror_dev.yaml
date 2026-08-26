@@ -1,0 +1,91 @@
+schema_version: 1
+development_only: true
+
+experiment:
+  control_rate_hz: 50.0
+  truth_rate_hz: 50.0
+  trial_timeout_s: 30.0
+  stabilize_s: 2.0
+  hold_after_capture_s: 2.0
+  auto_land: true
+  path_history: 750
+
+interceptor:
+  nominal_altitude_m: 5.0
+  initial_range_m: 18.0
+  initial_position_enu_m: [-29.0, 0.0, 0.0]
+  max_speed_mps: 5.0
+  max_acceleration_mps2: 3.0
+  command_timeout_s: 0.25
+  # Standard `make px4_sitl gz_x500`: instance 0 and un-namespaced /fmu topics.
+  px4_namespace: ""
+  expected_system_id: 1
+  gazebo_model_name: x500_0
+
+manual_control:
+  takeoff_altitude_m: 2.0
+  horizontal_speed_mps: 1.0
+  vertical_speed_mps: 0.6
+  yaw_rate_rad_s: 0.7
+  input_timeout_s: 0.25
+  # SSH terminals send repeated characters but no portable key-release event.
+  terminal_repeat_timeout_s: 0.30
+  terminal_action_debounce_s: 0.70
+  offboard_prestream_s: 1.0
+
+virtual_target:
+  nominal_speed_mps: 3.0
+  nominal_altitude_m: 5.0
+  origin_enu_m: [0.0, 0.0, 5.0]
+  HT1:
+    duration_s: 13.3333333333
+    lateral_amplitude_m: 5.0
+    wavelength_m: 24.0
+  HT2:
+    major_radius_m: 12.0
+    minor_radius_m: 7.0
+    angular_rate_rad_s: 0.25
+  STATIC:
+    position_enu_m: [-11.0, 0.0, 5.0]
+
+capture:
+  radius_m: 1.0
+
+telemetry_conditions:
+  DEV0:
+    delay_ms: 0
+    dropout_probability: 0.0
+    position_noise_std_m: 0.0
+    velocity_noise_std_mps: 0.0
+  HC0:
+    delay_ms: 50
+    dropout_probability: 0.0
+    position_noise_std_m: 0.0
+    velocity_noise_std_mps: 0.0
+  HC1:
+    delay_ms: 120
+    dropout_probability: 0.0
+    position_noise_std_m: 0.0
+    velocity_noise_std_mps: 0.0
+
+controller:
+  # Frozen existing implementation. These values are documented, not retuned here.
+  method_mapping:
+    M0prime: A0prime_CA_arrival
+    M1: mpc_dca_tracking
+  frozen_config_path: vendor/drone-interception-comparison-v3/configs/q2_revision_pilot.yaml
+  horizon_steps: 20
+  horizon_s: 0.4
+  heartbeat_timeout_s: 0.25
+  startup_grace_s: 0.50
+
+logging:
+  root: results/ras_hardware_mirror
+  optional_rosbag: false
+
+visualization:
+  marker_rate_hz: 10.0
+  # A responsive operator display is more important than high-rate plot redraws.
+  # The dashboard still samples ROS data at topic rate between redraws.
+  dashboard_rate_hz: 3.0
+  gazebo_pose_rate_hz: 10.0
