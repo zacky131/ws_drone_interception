@@ -239,6 +239,12 @@ class ExperimentManagerNode(Node):
                 + float(self.config["manual_control"]["takeoff_altitude_m"])
             )
             self.takeoff_active = True
+            if not self._is_offboard():
+                self.rc_takeover_active = False
+                self.manual_override_latched = False
+                self.offboard_requested_s = now
+                self.last_offboard_command_s = -math.inf
+            self.get_logger().info(f"keyboard TAKEOFF requested to {self.takeoff_position_map[2]:.1f} m (auto-engaging OFFBOARD)")
         elif action == "HOLD":
             self.pending_scenario = None
             self.takeoff_active = False
@@ -274,12 +280,31 @@ class ExperimentManagerNode(Node):
         if not self._is_armed():
             self.get_logger().warning(f"rejected {expected['stage']}: PX4 must report ARMED")
             return
-        if self.machine.phase != ExperimentPhase.PRECHECK:
+
+        now = self._now()
+        if self.machine.phase in {ExperimentPhase.DONE, ExperimentPhase.HOLD, ExperimentPhase.ABORT}:
+            self.machine.phase = ExperimentPhase.PRECHECK
+            self.phase_enter_s = now
+            self.safety_abort = False
+            self.capture_time_s = None
+            self.minimum_separation_m = math.inf
+            self.land_requested = False
+            self._publish_phase()
+        elif self.machine.phase != ExperimentPhase.PRECHECK:
             self.get_logger().warning(
                 f"rejected {expected['stage']}: experiment state must be PRECHECK, "
                 f"not {self.machine.phase.value}"
             )
             return
+
+        # Automatically engage Offboard mode if not already in Offboard
+        if not self._is_offboard():
+            self.rc_takeover_active = False
+            self.manual_override_latched = False
+            self.offboard_requested_s = now
+            self.last_offboard_command_s = -math.inf
+            self.get_logger().info(f"scenario {expected['stage']}: automatically prestreaming setpoints and engaging OFFBOARD mode")
+
         selection = String()
         selection.data = json.dumps(expected, separators=(",", ":"))
         self.scenario_pub.publish(selection)
@@ -288,7 +313,7 @@ class ExperimentManagerNode(Node):
             self._run_gs6_gate()
             return
         self.pending_scenario = dict(expected)
-        self.pending_scenario_s = self._now()
+        self.pending_scenario_s = now
         self.controller_scenario_ready_stage = ""
         self.get_logger().info(f"accepted armed scenario request {expected['stage']}; synchronizing nodes")
 
