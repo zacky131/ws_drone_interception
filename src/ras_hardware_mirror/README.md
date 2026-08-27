@@ -166,6 +166,11 @@ cd ~/ws_drone_interception
 source scripts/env.sh
 source install/setup.bash
 ros2 run ras_hardware_mirror keyboard_control
+
+or
+
+ros2 launch ras_hardware_mirror mirror_keyboard.launch.py manifest_row:=1
+
 ```
 
 Run this directly in its own interactive SSH terminal. If the SSH client does

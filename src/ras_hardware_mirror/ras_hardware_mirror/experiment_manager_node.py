@@ -235,7 +235,16 @@ class ExperimentManagerNode(Node):
                 + float(self.config["manual_control"]["takeoff_altitude_m"])
             )
             self.takeoff_active = True
-            self.get_logger().info(f"keyboard TAKEOFF requested to {self.takeoff_position_map[2]:.1f} m")
+        elif action == "HOLD":
+            self.pending_scenario = None
+            self.takeoff_active = False
+            self.rc_takeover_active = True
+            self.manual_override_latched = True
+            self.arm_requested_s = None
+            if self.machine.phase in {ExperimentPhase.TAKEOFF, ExperimentPhase.STABILIZE, ExperimentPhase.RUN}:
+                self._transition("abort")
+            self._vehicle_command(VehicleCommand.VEHICLE_CMD_DO_SET_MODE, 1.0, 4.0)
+            self.get_logger().warning("keyboard HOLD requested: commanded PX4 AUTO_LOITER (Hold) mode and halted Offboard streaming")
         elif action == "LAND":
             self.pending_scenario = None
             self.takeoff_active = False
