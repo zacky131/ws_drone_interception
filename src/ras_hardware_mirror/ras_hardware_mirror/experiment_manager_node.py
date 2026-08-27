@@ -48,6 +48,20 @@ class ExperimentStateMachine:
         return self.phase
 
 
+NAV_STATE_NAMES = {
+    0: "MANUAL",
+    1: "ALTCTL",
+    2: "POSCTL",
+    3: "AUTO_MISSION",
+    4: "AUTO_LOITER",
+    5: "AUTO_RTL",
+    10: "ACRO",
+    14: "OFFBOARD",
+    15: "STABILIZED",
+    18: "AUTO_LAND",
+}
+
+
 class ExperimentManagerNode(Node):
     def __init__(self) -> None:
         super().__init__("experiment_manager")
@@ -89,6 +103,7 @@ class ExperimentManagerNode(Node):
         self.manual_command = np.zeros(4, dtype=float)
         self.manual_command_stamp_s = -math.inf
         self.manual_override_latched = False
+        self.rc_takeover_active = False
         self.arm_requested_s: float | None = None
         self.last_arm_command_s = -math.inf
         self.takeoff_active = False
@@ -131,7 +146,27 @@ class ExperimentManagerNode(Node):
         self.ready[key] = bool(msg.data)
 
     def _px4_status(self, msg: VehicleStatus) -> None:
+        prev_status = self.status
         self.status = msg
+        nav_state = int(msg.nav_state)
+        is_offboard = (nav_state == VehicleStatus.NAVIGATION_STATE_OFFBOARD)
+
+        if prev_status is not None:
+            prev_nav_state = int(prev_status.nav_state)
+            was_offboard = (prev_nav_state == VehicleStatus.NAVIGATION_STATE_OFFBOARD)
+            # Detect RC / QGC mode switch away from OFFBOARD while active
+            if was_offboard and not is_offboard:
+                mode_name = NAV_STATE_NAMES.get(nav_state, f"MODE_{nav_state}")
+                self.get_logger().warn(
+                    f"⚠️ MANUAL TAKEOVER / MODE SWITCH DETECTED: PX4 transitioned from OFFBOARD -> {mode_name} (nav_state={nav_state}). "
+                    f"Yielding control immediately and halting ROS Offboard setpoints."
+                )
+                self.rc_takeover_active = True
+                self.manual_override_latched = True
+                self.arm_requested_s = None
+                self.pending_scenario = None
+                if self.machine.phase in {ExperimentPhase.TAKEOFF, ExperimentPhase.STABILIZE, ExperimentPhase.RUN}:
+                    self._transition("abort")
 
     def _local_position(self, msg: VehicleLocalPosition) -> None:
         self.local_position = msg
@@ -160,6 +195,9 @@ class ExperimentManagerNode(Node):
     def _is_armed(self) -> bool:
         return self.status is not None and int(self.status.arming_state) == VehicleStatus.ARMING_STATE_ARMED
 
+    def _is_offboard(self) -> bool:
+        return self.status is not None and int(self.status.nav_state) == VehicleStatus.NAVIGATION_STATE_OFFBOARD
+
     def _manual_velocity(self, msg: TwistStamped) -> None:
         self.manual_command = np.array([msg.twist.linear.x, msg.twist.linear.y, msg.twist.linear.z, msg.twist.angular.z], dtype=float)
         self.manual_command_stamp_s = self._now()
@@ -170,6 +208,8 @@ class ExperimentManagerNode(Node):
         action = msg.data.strip().upper()
         now = self._now()
         if action == "ARM":
+            self.rc_takeover_active = False
+            self.manual_override_latched = False
             if self.machine.phase == ExperimentPhase.DONE:
                 self.machine.phase = ExperimentPhase.PRECHECK
                 self.phase_enter_s = now
@@ -306,6 +346,8 @@ class ExperimentManagerNode(Node):
         self.vehicle_command_pub.publish(msg)
 
     def _position_setpoint(self, map_position: np.ndarray) -> None:
+        if self.rc_takeover_active or (not self._is_offboard() and self.machine.phase != ExperimentPhase.TAKEOFF):
+            return
         local_enu = np.asarray(map_position) - np.asarray(self.config["interceptor"]["initial_position_enu_m"], dtype=float)
         reference = np.zeros(3) if self.px4_reference_ned is None else self.px4_reference_ned
         position_ned = reference + enu_to_ned(local_enu)
@@ -323,6 +365,10 @@ class ExperimentManagerNode(Node):
         self.setpoint_pub.publish(point)
 
     def _velocity_setpoint(self, override: np.ndarray | None = None) -> None:
+        if self.rc_takeover_active:
+            return
+        if not self._is_offboard() and self.arm_requested_s is None and not self.takeoff_active:
+            return
         command = self.manual_command.copy() if override is None else np.asarray(override, dtype=float).copy()
         if override is None and self._now() - self.manual_command_stamp_s > float(self.config["manual_control"]["input_timeout_s"]):
             command[:] = 0.0
@@ -349,6 +395,8 @@ class ExperimentManagerNode(Node):
         self.setpoint_pub.publish(point)
 
     def _acceleration_setpoint(self, raw: np.ndarray) -> None:
+        if self.rc_takeover_active or not self._is_offboard():
+            return
         command = np.asarray(raw, dtype=float)
         maximum = float(self.config["interceptor"]["max_acceleration_mps2"])
         norm = np.linalg.norm(command)
@@ -410,16 +458,18 @@ class ExperimentManagerNode(Node):
                 else:
                     self._velocity_setpoint()
                 if self.arm_requested_s is not None:
-                    if self._is_armed():
+                    if self._is_armed() and self._is_offboard():
                         self.get_logger().info("PX4 reports ARMED in OFFBOARD")
                         self.arm_requested_s = None
-                    elif now - self.arm_requested_s >= float(self.config["manual_control"]["offboard_prestream_s"]) and now - self.last_arm_command_s >= 1.0:
+                    elif not self.rc_takeover_active and now - self.arm_requested_s >= float(self.config["manual_control"]["offboard_prestream_s"]) and now - self.last_arm_command_s >= 1.0:
                         self._vehicle_command(VehicleCommand.VEHICLE_CMD_DO_SET_MODE, 1.0, 6.0)
                         self._vehicle_command(VehicleCommand.VEHICLE_CMD_COMPONENT_ARM_DISARM, 1.0)
                         self.last_arm_command_s = now
                 if (
                     self.pending_scenario is not None
                     and self._is_armed()
+                    and self._is_offboard()
+                    and not self.rc_takeover_active
                     and all(self.ready.values())
                     and self.controller_scenario_ready_stage == self.pending_scenario["stage"]
                     and now - self.pending_scenario_s >= 0.25
@@ -428,7 +478,7 @@ class ExperimentManagerNode(Node):
         elif phase == ExperimentPhase.TAKEOFF:
             self._position_setpoint(self._takeoff_point())
             self.prestream_count += 1
-            if self.prestream_count == 100:
+            if self.prestream_count == 100 and not self.rc_takeover_active:
                 self._vehicle_command(VehicleCommand.VEHICLE_CMD_DO_SET_MODE, 1.0, 6.0)
                 self._vehicle_command(VehicleCommand.VEHICLE_CMD_COMPONENT_ARM_DISARM, 1.0)
             if self.interceptor is not None and self.status is not None:
@@ -441,9 +491,10 @@ class ExperimentManagerNode(Node):
             if now - self.phase_enter_s >= float(self.config["experiment"]["stabilize_s"]):
                 self._transition("stable")
         elif phase == ExperimentPhase.RUN:
-            if self.manual_override_latched:
+            if self.manual_override_latched or self.rc_takeover_active:
                 self._transition("abort")
-                self._velocity_setpoint()
+                if not self.rc_takeover_active:
+                    self._velocity_setpoint()
             elif self.safety_abort:
                 self._transition("abort")
             elif self.interceptor is not None and self.target is not None:
@@ -457,14 +508,15 @@ class ExperimentManagerNode(Node):
         elif phase in {ExperimentPhase.CAPTURE, ExperimentPhase.ABORT}:
             self._transition("settle")
         elif phase == ExperimentPhase.HOLD:
-            if self.manual_override_latched:
-                self._velocity_setpoint()
+            if self.manual_override_latched or self.rc_takeover_active:
+                if not self.rc_takeover_active:
+                    self._velocity_setpoint()
             elif not visual_only:
                 self._position_setpoint(self.hold_position_map if self.hold_position_map is not None else self._takeoff_point())
-            if not self.manual_override_latched and now - self.phase_enter_s >= float(self.config["experiment"]["hold_after_capture_s"]):
+            if not self.manual_override_latched and not self.rc_takeover_active and now - self.phase_enter_s >= float(self.config["experiment"]["hold_after_capture_s"]):
                 self._transition("land" if self.config["experiment"]["auto_land"] and not visual_only else "finish")
         elif phase == ExperimentPhase.LAND:
-            if now - self.last_vehicle_command_s >= 1.0:
+            if not self.rc_takeover_active and now - self.last_vehicle_command_s >= 1.0:
                 self._vehicle_command(VehicleCommand.VEHICLE_CMD_NAV_LAND)
                 self.last_vehicle_command_s = now
             if self.status is not None and int(self.status.arming_state) == VehicleStatus.ARMING_STATE_DISARMED:
@@ -475,7 +527,11 @@ class ExperimentManagerNode(Node):
         sep = math.nan
         if self.interceptor is not None and self.target is not None:
             sep = distance(odom_vectors(self.interceptor)[0], odom_vectors(self.target)[0])
-        px4_state = "UNAVAILABLE" if self.status is None else ("OFFBOARD" if int(self.status.nav_state) == VehicleStatus.NAVIGATION_STATE_OFFBOARD else str(int(self.status.nav_state)))
+        if self.status is None:
+            px4_state = "UNAVAILABLE"
+        else:
+            nav_state = int(self.status.nav_state)
+            px4_state = NAV_STATE_NAMES.get(nav_state, str(nav_state))
         status = diagnostic(
             "ras_hw_mirror/experiment",
             DiagnosticStatus.ERROR if self.machine.phase == ExperimentPhase.ABORT else DiagnosticStatus.OK,

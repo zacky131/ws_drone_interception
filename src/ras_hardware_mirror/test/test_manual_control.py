@@ -56,3 +56,14 @@ def test_frozen_24_run_manifest_is_keyboard_selectable_and_paired():
         assert right["method"] == "M1"
         for key in ("trajectory", "condition", "seed", "repetition"):
             assert left[key] == right[key]
+
+
+def test_rc_takeover_mode_names():
+    from ras_hardware_mirror.experiment_manager_node import NAV_STATE_NAMES
+    assert NAV_STATE_NAMES[0] == "MANUAL"
+    assert NAV_STATE_NAMES[1] == "ALTCTL"
+    assert NAV_STATE_NAMES[2] == "POSCTL"
+    assert NAV_STATE_NAMES[5] == "AUTO_RTL"
+    assert NAV_STATE_NAMES[14] == "OFFBOARD"
+    assert NAV_STATE_NAMES[18] == "AUTO_LAND"
+
