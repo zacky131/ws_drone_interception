@@ -17,7 +17,7 @@ interceptor:
   - 0.0
   max_speed_mps: 5.0
   max_acceleration_mps2: 3.0
-  command_timeout_s: 0.25
+  command_timeout_s: 1.0
   px4_namespace: ''
   expected_system_id: 1
   gazebo_model_name: x500_0
@@ -26,7 +26,7 @@ manual_control:
   horizontal_speed_mps: 1.0
   vertical_speed_mps: 0.6
   yaw_rate_rad_s: 0.7
-  input_timeout_s: 0.25
+  input_timeout_s: 0.5
   terminal_repeat_timeout_s: 0.3
   terminal_action_debounce_s: 0.7
   offboard_prestream_s: 1.0
@@ -76,8 +76,8 @@ controller:
   frozen_config_path: vendor/drone-interception-comparison-v3/configs/q2_revision_pilot.yaml
   horizon_steps: 20
   horizon_s: 0.4
-  heartbeat_timeout_s: 0.25
-  startup_grace_s: 0.5
+  heartbeat_timeout_s: 1.0
+  startup_grace_s: 1.0
 logging:
   root: results/ras_hardware_mirror
   optional_rosbag: false
