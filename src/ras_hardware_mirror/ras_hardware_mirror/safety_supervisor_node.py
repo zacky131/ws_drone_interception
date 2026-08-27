@@ -166,6 +166,7 @@ class SafetySupervisorNode(Node):
             decision = self.monitor.evaluate(SafetyInputs(now, self.run_start_s, self.interceptor, self.target, now - self.controller_stamp_s, self.command_finite, self.px4_healthy, self.manual_abort))
             if decision.abort:
                 self.latched_reason = decision.reason
+                self.get_logger().error(f"🚨 SAFETY ABORT TRIGGERED: reason='{self.latched_reason}' (phase={self.phase})")
         abort = Bool()
         abort.data = bool(self.latched_reason)
         self.abort_pub.publish(abort)
