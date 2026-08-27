@@ -26,7 +26,8 @@ from .ros_utils import diagnostic_values
 
 HELP = """RAS X500 SSH terminal control (this terminal is now in cbreak mode)
 
-q  arm / enter offboard       t  take off to 2 m       h  hold (loiter)       g  land
+q  arm only                   o  enter offboard mode
+t  take off to 2 m            h  hold (loiter)       g  land
 w / s                         up / down
 a / d                         yaw left / yaw right
 arrow up / down               forward / back
@@ -183,15 +184,15 @@ class KeyboardControlNode(Node):
                 self._report(f"MANUAL velocity active: {key}")
             return
 
-        if key not in {"q", "t", "h", "g", "8"} and key not in SCENARIOS:
+        if key not in {"q", "o", "t", "h", "g", "8"} and key not in SCENARIOS:
             return
         previous_s = self.action_seen_s.get(key)
         self.action_seen_s[key] = now
         if previous_s is not None and now - previous_s < self.action_debounce_s:
             return
 
-        if key in {"q", "t", "h", "g"}:
-            action = {"q": "ARM", "t": "TAKEOFF", "h": "HOLD", "g": "LAND"}[key]
+        if key in {"q", "o", "t", "h", "g"}:
+            action = {"q": "ARM", "o": "OFFBOARD", "t": "TAKEOFF", "h": "HOLD", "g": "LAND"}[key]
             msg = String()
             msg.data = action
             self.action_pub.publish(msg)

@@ -223,9 +223,11 @@ terminal settings are restored on `Ctrl-C` or normal shutdown.
 
 | Key | Function |
 |---|---|
-| `q` | prestream zero velocity, enter offboard, and arm |
-| `t` | take off to 2 m, then zero-velocity hover |
-| `g` | cancel the current action and land |
+| `q` | arm the vehicle |
+| `o` | enter / engage offboard mode from any current flight mode |
+| `t` | take off to 2 m, then zero-velocity hover (in offboard) |
+| `h` | switch PX4 to Hold (Loiter) mode and stop offboard streaming |
+| `g` | cancel current action and land |
 | hold `w` / `s` | move up / down |
 | hold `a` / `d` | yaw left / right |
 | hold ↑ / ↓ | move forward / back relative to current heading |

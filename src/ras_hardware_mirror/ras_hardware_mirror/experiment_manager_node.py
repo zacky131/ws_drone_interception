@@ -104,8 +104,8 @@ class ExperimentManagerNode(Node):
         self.manual_command_stamp_s = -math.inf
         self.manual_override_latched = False
         self.rc_takeover_active = False
-        self.arm_requested_s: float | None = None
-        self.last_arm_command_s = -math.inf
+        self.offboard_requested_s: float | None = None
+        self.last_offboard_command_s = -math.inf
         self.takeoff_active = False
         self.takeoff_position_map: np.ndarray | None = None
         self.land_requested = False
@@ -163,7 +163,7 @@ class ExperimentManagerNode(Node):
                 )
                 self.rc_takeover_active = True
                 self.manual_override_latched = True
-                self.arm_requested_s = None
+                self.offboard_requested_s = None
                 self.pending_scenario = None
                 if self.machine.phase in {ExperimentPhase.TAKEOFF, ExperimentPhase.STABILIZE, ExperimentPhase.RUN}:
                     self._transition("abort")
@@ -208,9 +208,15 @@ class ExperimentManagerNode(Node):
         action = msg.data.strip().upper()
         now = self._now()
         if action == "ARM":
+            if not self._is_armed():
+                self._vehicle_command(VehicleCommand.VEHICLE_CMD_COMPONENT_ARM_DISARM, 1.0)
+                self.get_logger().info("keyboard ARM requested; sent ARM command to PX4")
+            else:
+                self.get_logger().info("PX4 is already ARMED")
+        elif action == "OFFBOARD":
             self.rc_takeover_active = False
             self.manual_override_latched = False
-            if self.machine.phase == ExperimentPhase.DONE:
+            if self.machine.phase in {ExperimentPhase.DONE, ExperimentPhase.ABORT, ExperimentPhase.HOLD}:
                 self.machine.phase = ExperimentPhase.PRECHECK
                 self.phase_enter_s = now
                 self.safety_abort = False
@@ -218,11 +224,9 @@ class ExperimentManagerNode(Node):
                 self.minimum_separation_m = math.inf
                 self.land_requested = False
                 self._publish_phase()
-            if not self._is_armed():
-                self.arm_requested_s = now
-                self.last_arm_command_s = -math.inf
-                self.land_requested = False
-                self.get_logger().info("keyboard ARM requested; prestreaming zero-velocity offboard setpoints")
+            self.offboard_requested_s = now
+            self.last_offboard_command_s = -math.inf
+            self.get_logger().info("keyboard OFFBOARD requested; prestreaming zero-velocity setpoints and switching to OFFBOARD")
         elif action == "TAKEOFF":
             takeoff_state = self.interceptor_ground_truth if self.interceptor_ground_truth is not None else self.interceptor
             if not self._is_armed() or takeoff_state is None:
@@ -240,7 +244,7 @@ class ExperimentManagerNode(Node):
             self.takeoff_active = False
             self.rc_takeover_active = True
             self.manual_override_latched = True
-            self.arm_requested_s = None
+            self.offboard_requested_s = None
             if self.machine.phase in {ExperimentPhase.TAKEOFF, ExperimentPhase.STABILIZE, ExperimentPhase.RUN}:
                 self._transition("abort")
             self._vehicle_command(VehicleCommand.VEHICLE_CMD_DO_SET_MODE, 1.0, 4.0)
@@ -250,6 +254,7 @@ class ExperimentManagerNode(Node):
             self.takeoff_active = False
             self.land_requested = True
             self.manual_override_latched = False
+            self.offboard_requested_s = None
             if self.machine.phase != ExperimentPhase.DONE:
                 self.machine.phase = ExperimentPhase.LAND
                 self.phase_enter_s = now
@@ -376,7 +381,7 @@ class ExperimentManagerNode(Node):
     def _velocity_setpoint(self, override: np.ndarray | None = None) -> None:
         if self.rc_takeover_active:
             return
-        if not self._is_offboard() and self.arm_requested_s is None and not self.takeoff_active:
+        if not self._is_offboard() and self.offboard_requested_s is None and not self.takeoff_active:
             return
         command = self.manual_command.copy() if override is None else np.asarray(override, dtype=float).copy()
         if override is None and self._now() - self.manual_command_stamp_s > float(self.config["manual_control"]["input_timeout_s"]):
@@ -466,14 +471,13 @@ class ExperimentManagerNode(Node):
                         self._velocity_setpoint(np.zeros(4))
                 else:
                     self._velocity_setpoint()
-                if self.arm_requested_s is not None:
-                    if self._is_armed() and self._is_offboard():
-                        self.get_logger().info("PX4 reports ARMED in OFFBOARD")
-                        self.arm_requested_s = None
-                    elif not self.rc_takeover_active and now - self.arm_requested_s >= float(self.config["manual_control"]["offboard_prestream_s"]) and now - self.last_arm_command_s >= 1.0:
+                if self.offboard_requested_s is not None:
+                    if self._is_offboard():
+                        self.get_logger().info("PX4 entered OFFBOARD mode")
+                        self.offboard_requested_s = None
+                    elif not self.rc_takeover_active and now - self.offboard_requested_s >= float(self.config["manual_control"]["offboard_prestream_s"]) and now - self.last_offboard_command_s >= 1.0:
                         self._vehicle_command(VehicleCommand.VEHICLE_CMD_DO_SET_MODE, 1.0, 6.0)
-                        self._vehicle_command(VehicleCommand.VEHICLE_CMD_COMPONENT_ARM_DISARM, 1.0)
-                        self.last_arm_command_s = now
+                        self.last_offboard_command_s = now
                 if (
                     self.pending_scenario is not None
                     and self._is_armed()
