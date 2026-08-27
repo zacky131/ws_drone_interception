@@ -138,6 +138,10 @@ MicroXRCEAgent udp4 -p 8888
 Terminal 2 — standard PX4 default world and one X500:
 
 ```bash
+
+cd /home/wens/ws_drone_interception
+source scripts/env.sh
+source install/setup.bash
 ros2 launch ras_hardware_mirror mirror_gazebo.launch.py gui:=--gui
 ```
 
@@ -428,7 +432,15 @@ When deploying to physical hardware (e.g. companion computer mounted on an X500 
 1. Connect companion computer to Pixhawk via Serial (TELEM2 / USB `/dev/ttyACM0`) or Ethernet.
 2. In QGroundControl, set `UXRCE_DDS_CFG` to the companion port, `SER_TEL2_BAUD` to `921600`, and set offboard failsafe `COM_OF_LOSS_T` to `1.0` s.
 3. Ensure RTK base station is broadcasting corrections and PX4 EKF2 reports `RTK Fixed` (Fix Type 6).
-4. Update `config/field.yaml` and `config/hardware_mirror_dev.yaml` with the outdoor field origin and geofence coordinates.
+
+### Automatic Field Calibration (Run Once at the Field)
+Place the drone on the takeoff pad **facing the long axis of the football field**, start Terminal 1 (MicroXRCEAgent), and run:
+```bash
+ros2 run ras_hardware_mirror calibrate_field
+# Or with a manual compass heading (e.g. 45.0 degrees):
+# ros2 run ras_hardware_mirror calibrate_field --heading 45.0
+```
+This automatically samples the drone's compass heading from `/fmu/out/vehicle_local_position`, computes the rotated field geometry, and updates `config/field.yaml` and `config/hardware_mirror_dev.yaml`.
 
 ### Terminal Commands
 

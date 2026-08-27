@@ -1,0 +1,57 @@
+# In EVERY terminal, first run:
+cd /home/wens/ws_drone_interception
+source scripts/env.sh
+source install/setup.bash
+
+
+# -------------------------------------------------------------
+# STEP 0: Field Heading Calibration (Run ONCE at the field)
+# 1. Place drone at takeoff pad facing down the football field.
+# 2. Ensure Terminal 1 (MicroXRCEAgent) is running and PX4 is connected.
+# 3. Run calibrator:
+ros2 run ras_hardware_mirror calibrate_field
+
+# (Or if you know the compass heading manually, e.g. 45 degrees):
+# ros2 run ras_hardware_mirror calibrate_field --heading 45.0
+# -------------------------------------------------------------
+
+
+Terminal 1 - MicroXRCEAgent:
+MicroXRCEAgent serial --dev /dev/ttyACM0 -b 921600
+
+
+calibration: 
+cd /home/wens/ws_drone_interception
+source scripts/env.sh
+source install/setup.bash
+
+ros2 run ras_hardware_mirror calibrate_field
+
+if want to update manually:
+ros2 run ras_hardware_mirror calibrate_field --heading 45.0
+
+
+Terminal 2
+cd /home/wens/ws_drone_interception
+source scripts/env.sh
+source install/setup.bash
+ros2 launch ras_hardware_mirror mirror_nodes.launch.py
+
+
+
+Terminal 3 
+cd /home/wens/ws_drone_interception
+source scripts/env.sh
+source install/setup.bash
+ros2 launch ras_hardware_mirror mirror_keyboard.launch.py
+
+or
+ros2 launch ras_hardware_mirror mirror_keyboard.launch.py manifest_row:=1
+
+
+
+Terminal 4 
+cd /home/wens/ws_drone_interception
+source scripts/env.sh
+source install/setup.bash
+ros2 launch ras_hardware_mirror mirror_visualization.launch.py

@@ -5,9 +5,11 @@ log/
 
 # Simulation experiment data, rosbag, and outputs
 results/
+rosbag/
 *.bag
 *.db3
 *.mcap
+*.bak
 
 # Python cache and testing artifacts
 __pycache__/

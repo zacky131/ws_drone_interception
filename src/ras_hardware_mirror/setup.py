@@ -42,6 +42,7 @@ setup(
             "live_dashboard = ras_hardware_mirror.live_dashboard:main",
             "mirror_logger = ras_hardware_mirror.logger_node:main",
             "keyboard_control = ras_hardware_mirror.keyboard_control_node:main",
+            "calibrate_field = ras_hardware_mirror.calibrate_field_node:main",
         ]
     },
 )

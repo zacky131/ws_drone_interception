@@ -22,3 +22,22 @@ def test_distance_and_box_inclusion_are_boundary_inclusive():
 
 def test_humble_byte_diagnostic_level_is_normalized():
     assert diagnostic("test", DiagnosticStatus.OK).status[0].level == DiagnosticStatus.OK
+
+
+def test_rotated_box_inclusion_and_rectangle_points():
+    # Rotated by 45 deg (North-East)
+    bounds = {
+        "east_min_m": -10.0,
+        "east_max_m": 10.0,
+        "north_min_m": -5.0,
+        "north_max_m": 5.0,
+        "orientation_deg": 45.0,
+    }
+    # Point along 45 deg line at distance 8 (8*cos45, 8*sin45) is inside [-10, 10]
+    p_inside = [8.0 * np.cos(np.pi / 4), 8.0 * np.sin(np.pi / 4), 0.0]
+    assert inside_horizontal_box(p_inside, bounds)
+
+    # Point along 45 deg line at distance 12 is outside
+    p_outside = [12.0 * np.cos(np.pi / 4), 12.0 * np.sin(np.pi / 4), 0.0]
+    assert not inside_horizontal_box(p_outside, bounds)
+

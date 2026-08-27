@@ -23,12 +23,12 @@ def test_trajectories_are_finite_repeatable_and_at_configured_altitude():
 
 def test_trajectories_stay_in_development_target_region():
     bounds = FIELD["target_region"]
+    from ras_hardware_mirror.geometry_utils import inside_horizontal_box
     for name in ("HT1", "HT2"):
-        positions = np.array([evaluate_trajectory(name, t, CONFIG).position_enu for t in np.linspace(0, 30, 3001)])
-        assert positions[:, 0].min() >= bounds["east_min_m"]
-        assert positions[:, 0].max() <= bounds["east_max_m"]
-        assert positions[:, 1].min() >= bounds["north_min_m"]
-        assert positions[:, 1].max() <= bounds["north_max_m"]
+        for t in np.linspace(0, 30, 601):
+            pos = evaluate_trajectory(name, t, CONFIG).position_enu
+            assert inside_horizontal_box(pos, bounds)
+
 
 
 def test_ht1_state_is_continuous_through_terminal_hold():
@@ -42,3 +42,21 @@ def test_ht1_state_is_continuous_through_terminal_hold():
     assert np.array_equal(at.position_enu, right.position_enu)
     assert np.array_equal(at.velocity_enu, right.velocity_enu)
     assert np.array_equal(at.acceleration_enu, right.acceleration_enu)
+
+
+def test_rotated_trajectory_direction():
+    cfg_rot = dict(CONFIG)
+    cfg_rot["virtual_target"] = dict(CONFIG["virtual_target"])
+    cfg_rot["virtual_target"]["orientation_deg"] = 45.0
+    state_0 = evaluate_trajectory("HT1", 0.0, cfg_rot)
+    duration = float(cfg_rot["virtual_target"]["HT1"]["duration_s"])
+    state_end = evaluate_trajectory("HT1", duration, cfg_rot)
+    # The longitudinal progress should project purely onto the 45 deg field axis
+    theta = np.radians(45.0)
+    p0 = state_0.position_enu
+    p_end = state_end.position_enu
+    # Longitudinal distance along 45 deg axis
+    longitudinal = (p_end[0] - p0[0]) * np.cos(theta) + (p_end[1] - p0[1]) * np.sin(theta)
+    assert np.isclose(longitudinal, 21.3333333333, atol=1e-3)
+
+

@@ -1,19 +1,23 @@
 schema_version: 1
 development_only: true
-note: Replace these simulation-development placeholders after measuring the physical site.
+note: Replace these simulation-development placeholders after measuring the physical
+  site.
 field:
   length_m: 100.0
   width_m: 60.0
+  orientation_deg: 45.0
 hard_geofence:
   east_min_m: -40.0
   east_max_m: 40.0
   north_min_m: -22.0
   north_max_m: 22.0
+  orientation_deg: 45.0
 target_region:
   east_min_m: -30.0
   east_max_m: 30.0
   north_min_m: -15.0
   north_max_m: 15.0
+  orientation_deg: 45.0
 altitude:
   min_m: 2.0
   max_m: 8.0

@@ -29,7 +29,19 @@ def distance(a: Iterable[float], b: Iterable[float]) -> float:
 
 def inside_horizontal_box(position: Iterable[float], bounds: dict[str, float]) -> bool:
     east, north, _ = vector3(position)
-    return bool(bounds["east_min_m"] <= east <= bounds["east_max_m"] and bounds["north_min_m"] <= north <= bounds["north_max_m"])
+    theta_deg = float(bounds.get("orientation_deg", bounds.get("heading_deg", 0.0)))
+    if abs(theta_deg) > 1e-4:
+        theta = np.radians(theta_deg)
+        cos_t, sin_t = np.cos(theta), np.sin(theta)
+        xf = east * cos_t + north * sin_t
+        yf = -east * sin_t + north * cos_t
+    else:
+        xf, yf = east, north
+    e_min = bounds.get("length_min_m", bounds.get("east_min_m", -40.0))
+    e_max = bounds.get("length_max_m", bounds.get("east_max_m", 40.0))
+    n_min = bounds.get("width_min_m", bounds.get("north_min_m", -22.0))
+    n_max = bounds.get("width_max_m", bounds.get("north_max_m", 22.0))
+    return bool(e_min <= xf <= e_max and n_min <= yf <= n_max)
 
 
 def inside_altitude(position: Iterable[float], bounds: dict[str, float]) -> bool:
@@ -37,6 +49,22 @@ def inside_altitude(position: Iterable[float], bounds: dict[str, float]) -> bool
 
 
 def rectangle_points(bounds: dict[str, float], altitude_m: float = 0.05) -> np.ndarray:
-    e0, e1 = bounds["east_min_m"], bounds["east_max_m"]
-    n0, n1 = bounds["north_min_m"], bounds["north_max_m"]
-    return np.array([[e0, n0, altitude_m], [e1, n0, altitude_m], [e1, n1, altitude_m], [e0, n1, altitude_m], [e0, n0, altitude_m]], dtype=float)
+    theta_deg = float(bounds.get("orientation_deg", bounds.get("heading_deg", 0.0)))
+    e0 = bounds.get("length_min_m", bounds.get("east_min_m", -40.0))
+    e1 = bounds.get("length_max_m", bounds.get("east_max_m", 40.0))
+    n0 = bounds.get("width_min_m", bounds.get("north_min_m", -22.0))
+    n1 = bounds.get("width_max_m", bounds.get("north_max_m", 22.0))
+    corners = np.array([
+        [e0, n0],
+        [e1, n0],
+        [e1, n1],
+        [e0, n1],
+        [e0, n0],
+    ], dtype=float)
+    if abs(theta_deg) > 1e-4:
+        theta = np.radians(theta_deg)
+        cos_t, sin_t = np.cos(theta), np.sin(theta)
+        rot = np.array([[cos_t, -sin_t], [sin_t, cos_t]])
+        corners = (rot @ corners.T).T
+    return np.column_stack([corners, np.full(len(corners), altitude_m)])
+

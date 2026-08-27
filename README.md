@@ -150,9 +150,24 @@ For real hardware deployment (e.g., Holybro X500 / Pixhawk 6X / companion comput
 3. **RTK-GNSS**: Confirm PX4 EKF2 reports a solid 3D fix (`RTK Fixed` / Fix Type 6).
 4. **Field Boundaries**: Update geofence, flight altitude, and origin in [`src/ras_hardware_mirror/config/field.yaml`](file:///home/wens/ws_drone_interception/src/ras_hardware_mirror/config/field.yaml) and [`src/ras_hardware_mirror/config/hardware_mirror_dev.yaml`](file:///home/wens/ws_drone_interception/src/ras_hardware_mirror/config/hardware_mirror_dev.yaml).
 
+### 2. Automatic Field Orientation Calibration (Run Once at the Field)
+
+Before starting the experiment nodes, place your drone on the takeoff pad **facing in the forward direction along the length of your football field**.
+
+1. Start `MicroXRCEAgent` (Terminal 1) so ROS 2 can read the drone's compass heading.
+2. Run the calibrator:
+   ```bash
+   ros2 run ras_hardware_mirror calibrate_field
+   ```
+   *Or with a manual compass heading (e.g. 45.0°):*
+   ```bash
+   ros2 run ras_hardware_mirror calibrate_field --heading 45.0
+   ```
+This automatically samples the drone's compass heading, calculates the rotated ENU field geometry, and updates `field.yaml` and `hardware_mirror_dev.yaml` so the pursuer, target trajectory, and geofence align with your physical football pitch.
+
 ---
 
-### 2. Terminal-by-Terminal Execution for Real Hardware
+### 3. Terminal-by-Terminal Execution for Real Hardware
 
 ```bash
 # In EVERY terminal, first run:
