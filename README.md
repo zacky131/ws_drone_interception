@@ -47,10 +47,12 @@ ws_drone_interception/
 cd /home/wens/ws_drone_interception
 
 # Edit scripts/env.sh if your PX4 or ACADOS paths differ:
-# export PX4_DIR=/home/wens/PX4-version1.15.2/PX4-Autopilot
-# export ACADOS_SOURCE_DIR=/home/wens/acados
+# Choose network mode:
+# Option A (LOCAL MODE - default, immune to slow routers):
+source scripts/env.sh local
 
-source scripts/env.sh
+# Option B (NETWORK MODE - enables remote RViz on ground laptop):
+# source scripts/env.sh network
 ```
 
 ### 3. Build the Workspace

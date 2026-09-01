@@ -23,10 +23,25 @@ export AMENT_PREFIX_PATH="/home/wens/.local/ros_gz_opt/opt/ros/humble:$WS_DRONE_
 export PATH="$WS_DRONE_INTERCEPTION/install/drone_interception_px4/lib/drone_interception_px4:$PATH"
 export GZ_IP=127.0.0.1
 export ROS_DOMAIN_ID="${ROS_DOMAIN_ID:-0}"
-if [[ -f "$WS_DRONE_INTERCEPTION/src/ras_hardware_mirror/config/fastdds_shm_network.xml" ]]; then
-  export FASTRTPS_DEFAULT_PROFILES_FILE="$WS_DRONE_INTERCEPTION/src/ras_hardware_mirror/config/fastdds_shm_network.xml"
+
+# Network mode selection: 'local' (default, immune to slow routers) or 'network' (multi-machine RViz)
+_net_arg="${1:-${ROS_NET_MODE:-local}}"
+if [[ "$_net_arg" == "network" || "$_net_arg" == "net" || "$_net_arg" == "remote" || "$ROS_LOCALHOST_ONLY" == "0" && "$_net_arg" != "local" ]]; then
+  export ROS_NET_MODE=network
+  export ROS_LOCALHOST_ONLY=0
+  if [[ -f "$WS_DRONE_INTERCEPTION/src/ras_hardware_mirror/config/fastdds_shm_network.xml" ]]; then
+    export FASTRTPS_DEFAULT_PROFILES_FILE="$WS_DRONE_INTERCEPTION/src/ras_hardware_mirror/config/fastdds_shm_network.xml"
+  fi
+  echo "[ENV] ROS 2 Network Mode: NETWORK / REMOTE RVIZ (Domain: $ROS_DOMAIN_ID, Fast-DDS SHM+UDP)"
+else
+  export ROS_NET_MODE=local
+  export ROS_LOCALHOST_ONLY=1
+  unset FASTRTPS_DEFAULT_PROFILES_FILE
+  echo "[ENV] ROS 2 Network Mode: LOCALHOST ONLY (Immune to slow routers)"
 fi
+
 if [[ "$_ral_restore_nounset" == 1 ]]; then
   set -u
 fi
 unset _ral_restore_nounset
+unset _net_arg

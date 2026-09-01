@@ -1,6 +1,14 @@
-# In EVERY terminal, first run:
+# =============================================================
+# NETWORK MODE SELECTION (Choose one in EVERY terminal):
+# 
+# Option A (LOCAL MODE - Immune to slow routers / standalone run):
+#   source scripts/env.sh local
+# 
+# Option B (NETWORK MODE - For remote RViz on ground laptop):
+#   source scripts/env.sh network
+# =============================================================
 cd /home/wens/ws_drone_interception
-source scripts/env.sh
+source scripts/env.sh local
 source install/setup.bash
 
 
@@ -17,10 +25,10 @@ ros2 run ras_hardware_mirror calibrate_field
 
 
 Terminal 1 - MicroXRCEAgent:
-MicroXRCEAgent serial --dev /dev/ttyACM0 -b 921600
+mc
 
 
-calibration: 
+Terminal 2 - calibration: 
 cd /home/wens/ws_drone_interception
 source scripts/env.sh
 source install/setup.bash
@@ -32,7 +40,7 @@ if want to update manually:
 ros2 run ras_hardware_mirror calibrate_field --heading 45.0
 
 
-Terminal 2
+Terminal 3:
 cd /home/wens/ws_drone_interception
 source scripts/env.sh
 source install/setup.bash
@@ -40,7 +48,7 @@ ros2 launch ras_hardware_mirror mirror_nodes.launch.py
 
 
 
-Terminal 3 
+Terminal 4 
 cd /home/wens/ws_drone_interception
 source scripts/env.sh
 source install/setup.bash
@@ -49,10 +57,94 @@ ros2 launch ras_hardware_mirror mirror_keyboard.launch.py
 or
 ros2 launch ras_hardware_mirror mirror_keyboard.launch.py manifest_row:=1
 
+RAS X500 SSH terminal control (this terminal is now in cbreak mode)
+
+q  arm only                   o  enter offboard mode
+t  take off to 2 m            h  hold (loiter)       g  land
+w / s                         up / down
+a / d                         yaw left / yaw right
+arrow up / down               forward / back
+arrow left / right            move left / right
+
+1  GS1                         2  GS2                    3  GS3
+4  GS4                         5  GS5 M0'                6  GS5 M1
+7  GS6 safety checks
+8  selected hardware_mirror_24 manifest row (set manifest_row:=1..24)
 
 
-Terminal 4 
+
+====Optional==== better inside ground station
+Terminal 5 
 cd /home/wens/ws_drone_interception
 source scripts/env.sh
 source install/setup.bash
 ros2 launch ras_hardware_mirror mirror_visualization.launch.py
+
+
+
+
+
+=============== Simulations =====================
+
+## G. Manual multi-terminal launch
+
+Run the build/source preamble in every ROS terminal:
+
+```bash
+cd /home/wens/ws_drone_interception
+source scripts/env.sh
+source install/setup.bash
+```
+
+Terminal 1 — MicroXRCEAgent, kept visible in the foreground:
+
+```bash
+MicroXRCEAgent udp4 -p 8888
+```
+
+Terminal 2 — standard PX4 default world and one X500:
+
+```bash
+
+cd /home/wens/ws_drone_interception
+source scripts/env.sh
+source install/setup.bash
+ros2 launch ras_hardware_mirror mirror_gazebo.launch.py gui:=--gui
+```
+
+Terminal 3 — experiment nodes:
+
+```bash
+# Terminal 3
+cd ~/ws_drone_interception
+source scripts/env.sh
+source install/setup.bash
+ros2 launch ras_hardware_mirror mirror_nodes.launch.py
+```
+
+Terminal 4 — keyboard control:
+
+```bash
+# Terminal 4
+cd ~/ws_drone_interception
+source scripts/env.sh
+source install/setup.bash
+
+ros2 run ras_hardware_mirror keyboard_control
+
+or
+
+ros2 launch ras_hardware_mirror mirror_keyboard.launch.py manifest_row:=1
+
+```
+
+
+Alternative Terminal 5&6 — live dashboard:
+
+```bash
+cd /home/wens/ws_drone_interception
+source scripts/env.sh
+source install/setup.bash
+
+ros2 launch ras_hardware_mirror mirror_visualization.launch.py
+```
